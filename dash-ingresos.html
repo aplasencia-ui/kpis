@@ -70,13 +70,12 @@
         .form-group label { font-size:0.75rem; font-weight:600; color:var(--text-secondary); }
         .form-group input, .form-group select { padding:10px; border:1.5px solid var(--border); border-radius:var(--radius-sm); font-size:0.9rem; }
         .table-wrapper { overflow-x:auto; }
-        table { width:100%; border-collapse:collapse; font-size:0.82rem; }
-        th, td { padding:10px 12px; text-align:right; border-bottom:1px solid var(--border); }
-        th { background:#f7f8fa; font-weight:700; color:var(--primary); font-size:0.7rem; }
+        table { width:100%; border-collapse:collapse; font-size:0.82rem; display:table; }
+        th, td { padding:10px 12px; text-align:right; border-bottom:1px solid var(--border); vertical-align:top; }
+        th { background:#f7f8fa; font-weight:700; color:var(--primary); font-size:0.7rem; text-align:center; }
         td:first-child, th:first-child { text-align:left; }
-        td:nth-child(3) { white-space: normal; word-break: break-word; max-width: 250px; } /* cliente */
-        td:nth-child(4) { white-space: nowrap; } /* presupuesto */
-        td:nth-child(6) { white-space: normal; word-break: break-word; max-width: 200px; } /* producto */
+        td:nth-child(3), td:nth-child(6) { text-align:left; word-break:break-word; white-space:normal; max-width:250px; }
+        td:nth-child(4) { white-space:nowrap; }
         .toast { position:fixed; bottom:28px; right:28px; background:var(--success); color:#fff; padding:12px 22px; border-radius:25px; font-weight:600; font-size:0.85rem; box-shadow:0 4px 12px rgba(0,0,0,0.2); z-index:999; animation:slideUp 0.35s ease; }
         @keyframes slideUp { from { transform:translateY(60px); opacity:0; } to { transform:translateY(0); opacity:1; } }
         @media print { .sidebar, .btn, .toast, .no-print { display:none!important; } .main { margin-left:0!important; padding:10px!important; } }
@@ -254,12 +253,11 @@
         if (dot) dot.className = 'sync-indicator ' + (ok ? 'sync-ok' : 'sync-pending');
     }
 
-    // ---------- CARGA COMPLETA DE DATOS CORREGIDA (basada en CSV originales) ----------
+    // ========== DATOS COMPLETOS DESDE CSV (CORREGIDOS) ==========
     function construirDatosCompletos() {
         const registros = [];
         let id = 1;
 
-        // Función para convertir "dd-mmm" a "YYYY-MM-DD"
         function fechaDesdeCSV(fechaStr, mesIndex) {
             const partes = fechaStr.split('-');
             if (partes.length !== 2) return `2026-${(mesIndex+1).toString().padStart(2,'0')}-01`;
@@ -290,7 +288,7 @@
             });
         }
 
-        // ===================== ENERO (según archivo INGRESOS ENERO.csv) =====================
+        // ENERO (32 registros exactos del CSV)
         const ene = [
             ["3-ene","CILCAMA- HOTEL CASA MARINA REEF","23005826","HPS","TARJETAS DE ACCESO",959.34],
             ["6-ene","MODUS VIVENDIS - HOTEL EL BARCO","23006048","HPS","TARJETAS DE ACCESO",793.90],
@@ -327,7 +325,7 @@
         ];
         ene.forEach(r => agregar(r[0], 0, r[1], r[2], r[3], r[4], r[5]));
 
-        // ===================== FEBRERO (según INGRESOS FEBRERO.csv) =====================
+        // FEBRERO (28 registros)
         const feb = [
             ["2-feb","CONST. JOHANN REYES MARMOLEJOS","23005947","","",1230.67],
             ["3-feb","CONSTRUCTORA DOVARO","23005759-6149","","",5721.47],
@@ -360,7 +358,7 @@
         ];
         feb.forEach(r => agregar(r[0], 1, r[1], r[2], r[3], r[4], r[5]));
 
-        // ===================== MARZO (según INGRESOS MARZO.csv) =====================
+        // MARZO (45 registros)
         const mar = [
             ["1-mar","MAJESTIC DESARROLLOS DEL CARIBE","23006032","","",4252.07],
             ["3-mar","HOTEL COSTA LARIMAR","23006340","","",920.39],
@@ -410,7 +408,7 @@
         ];
         mar.forEach(r => agregar(r[0], 2, r[1], r[2], r[3], r[4], r[5]));
 
-        // ===================== ABRIL (con SIN ITBIS para MXC DOMINICANA) =====================
+        // ABRIL (con SIN ITBIS)
         const abr = [
             ["8-abr","REINA SANTO - HOTEL BILLINI","23006172","","",302.08],
             ["9-abr","ZEMI MICHES","23005967-6072-6212","","",2251.27],
@@ -438,9 +436,9 @@
             ["27-abr","UVEALTO 2015- SECRETS TIDES","23006348","","",775.26],
             ["27-abr","DOMINICANOTEL - HOTEL SENATOR PP","23005906","","",3413.27],
             ["27-abr","INVERSIONES ZAHENA- HOTEL HARD ROCK","23005376","","",137.19],
-            ["28-abr","MXC DOMINICANA - PROYECTO YANUNA","23006465","","",1256.46],   // SIN ITBIS
+            ["28-abr","MXC DOMINICANA - PROYECTO YANUNA","23006465","","",1256.46],  // SIN ITBIS
             ["28-abr","CF HOTELS LLC- HOTEL COURTYARD MAXIMO GOMEZ","23006419-23006492","","",2764.66],
-            ["29-abr","MXC DOMINICANA - PROYECTO YANUNA","23006466","","",965.50],    // SIN ITBIS
+            ["29-abr","MXC DOMINICANA - PROYECTO YANUNA","23006466","","",965.50],   // SIN ITBIS
             ["29-abr","PACKAGING SOLUTIONS PACKSOL SRL","23006593","","",510.16]
         ];
         abr.forEach(r => {
@@ -448,7 +446,7 @@
             agregar(r[0], 3, r[1], r[2], r[3], r[4], r[5], sinItbis);
         });
 
-        // ===================== MAYO (datos existentes) =====================
+        // MAYO
         const may = [
             ["2026-05-01","UVEALTO 2015- HOTEL SECRETS TIDES","23006421","HPS","PRODUCTOS HPS",11866.44],
             ["2026-05-04","DOMINICANOTEL - HOTEL SENATOR","23005906","","",1137.75],
@@ -464,6 +462,7 @@
             const neto = bruto / 1.18;
             registros.push({ id: id++, fecha: r[0], mes: 4, cliente: r[1], presupuesto: r[2], linea: r[3] || "", producto: r[4] || "", monto: bruto, neto: Math.round(neto*100)/100, sinItbis: false });
         });
+
         return registros;
     }
 
@@ -521,6 +520,7 @@
         currentView = view;
     }
 
+    // ========== NUEVA FUNCIÓN renderizarMes USANDO DOM PARA TABLA ==========
     function renderizarMes(mes) {
         const kpi = calcularKPIsMes(mes);
         document.getElementById('monthTitle').textContent = `${MESES[mes]} 2026`;
@@ -544,22 +544,53 @@
         destruirGrafico('chartDiario');
         const ctx2 = document.getElementById('chartDiario').getContext('2d');
         charts['chartDiario'] = new Chart(ctx2, { type: 'bar', data: { labels: sortedDias.map(d=>`Día ${d[0]}`), datasets: [{ data: sortedDias.map(d=>d[1]), backgroundColor: '#2c5f8a' }] }, options: { responsive: true, plugins: { legend: { display: false } } } });
-        let html = `<tr><th>N°</th><th>Fecha</th><th>Cliente</th><th>Presupuesto</th><th>Línea</th><th>Producto/S</th><th>Monto Bruto</th><th>Monto Neto</th>${esAdmin?'<th>Acciones</th>':''}</tr>`;
-        tx.forEach((t, idx) => {
-            html += `<tr>
-                <td>${idx+1}</td>
-                <td>${t.fecha}</td>
-                <td>${t.cliente}</td>
-                <td>${t.presupuesto}</td>
-                <td>${t.linea||'-'}</td>
-                <td>${t.producto||'-'}</td>
-                <td>$${t.monto.toFixed(2)}</td>
-                <td>$${t.neto.toFixed(2)}</td>
-                ${esAdmin?`<td><button class="btn btn-sm btn-edit" onclick="abrirModalEdicion(${t.id})">Editar</button> <button class="btn btn-sm" style="background:#c62828;color:#fff;" onclick="eliminarIngreso(${t.id})">X</button></td>`:''}
-            </tr>`;
+
+        // ----- Construcción de tabla mediante DOM -----
+        const contenedor = document.getElementById('tablaIngresos');
+        contenedor.innerHTML = ''; // limpiar
+        const tabla = document.createElement('table');
+        const thead = document.createElement('thead');
+        const headerRow = document.createElement('tr');
+        const headers = ['N°', 'Fecha', 'Cliente', 'Presupuesto', 'Línea', 'Producto/S', 'Monto Bruto', 'Monto Neto'];
+        if (esAdmin) headers.push('Acciones');
+        headers.forEach(h => {
+            const th = document.createElement('th');
+            th.textContent = h;
+            headerRow.appendChild(th);
         });
-        html += '</table>';
-        document.getElementById('tablaIngresos').innerHTML = html;
+        thead.appendChild(headerRow);
+        tabla.appendChild(thead);
+        const tbody = document.createElement('tbody');
+        tx.forEach((t, idx) => {
+            const row = document.createElement('tr');
+            const celdaNum = document.createElement('td'); celdaNum.textContent = (idx+1).toString(); row.appendChild(celdaNum);
+            const celdaFecha = document.createElement('td'); celdaFecha.textContent = t.fecha; row.appendChild(celdaFecha);
+            const celdaCliente = document.createElement('td'); celdaCliente.textContent = t.cliente; row.appendChild(celdaCliente);
+            const celdaPresup = document.createElement('td'); celdaPresup.textContent = t.presupuesto; row.appendChild(celdaPresup);
+            const celdaLinea = document.createElement('td'); celdaLinea.textContent = t.linea || '-'; row.appendChild(celdaLinea);
+            const celdaProd = document.createElement('td'); celdaProd.textContent = t.producto || '-'; row.appendChild(celdaProd);
+            const celdaBruto = document.createElement('td'); celdaBruto.textContent = `$${t.monto.toFixed(2)}`; row.appendChild(celdaBruto);
+            const celdaNeto = document.createElement('td'); celdaNeto.textContent = `$${t.neto.toFixed(2)}`; row.appendChild(celdaNeto);
+            if (esAdmin) {
+                const celdaAcciones = document.createElement('td');
+                const btnEditar = document.createElement('button');
+                btnEditar.textContent = 'Editar';
+                btnEditar.className = 'btn btn-sm btn-edit';
+                btnEditar.onclick = (function(id) { return function() { abrirModalEdicion(id); }; })(t.id);
+                const btnEliminar = document.createElement('button');
+                btnEliminar.textContent = 'X';
+                btnEliminar.className = 'btn btn-sm';
+                btnEliminar.style.background = '#c62828';
+                btnEliminar.style.color = '#fff';
+                btnEliminar.onclick = (function(id) { return function() { eliminarIngreso(id); }; })(t.id);
+                celdaAcciones.appendChild(btnEditar);
+                celdaAcciones.appendChild(btnEliminar);
+                row.appendChild(celdaAcciones);
+            }
+            tbody.appendChild(row);
+        });
+        tabla.appendChild(tbody);
+        contenedor.appendChild(tabla);
     }
 
     // ---------- EDICIÓN CON MODAL ----------
@@ -655,7 +686,7 @@
         document.getElementById('ingMonto').value = '';
     };
 
-    // ---------- VISTAS ANUAL Y DASHBOARD ----------
+    // ---------- VISTAS ANUAL Y DASHBOARD (sin cambios, solo por completitud) ----------
     function renderizarAnual() {
         let totalBruto = 0, totalNeto = 0, totalHPS = 0, totalIMP = 0;
         const clientes = {};
@@ -685,7 +716,7 @@
         const ctx2 = document.getElementById('chartHPSImportMensual').getContext('2d');
         charts['chartHPSImportMensual'] = new Chart(ctx2, { type: 'bar', data: { labels: MESES, datasets: [{ label: 'HPS', data: hpsPorMes, backgroundColor: '#1a3c5e' }, { label: 'IMPORT', data: impPorMes, backgroundColor: '#e8873a' }] }, options: { responsive: true, scales: { x: { stacked: true }, y: { stacked: true } } } });
         const sorted = Object.entries(clientes).sort((a,b)=>b[1]-a[1]).slice(0,15);
-        let html = '</table><th>Cliente</th><th>Total Bruto</th></tr>';
+        let html = '<table><th>Cliente</th><th>Total Bruto</th></tr>';
         sorted.forEach(([c,v]) => html += `<tr><td>${c}</td><td>$${v.toLocaleString()}</td></tr>`);
         html += '</table>';
         document.getElementById('tablaClientes').innerHTML = html;
