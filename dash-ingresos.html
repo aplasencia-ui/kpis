@@ -72,7 +72,7 @@
         table { width:100%; border-collapse:collapse; font-size:0.82rem; }
         th, td { padding:10px 12px; text-align:right; border-bottom:1px solid var(--border); }
         th { background:#f7f8fa; font-weight:700; color:var(--primary); font-size:0.7rem; }
-        td:first-child, th:first-child { text-align:left; font-weight:600; }
+        td:first-child, th:first-child { text-align:left; }
         .toast { position:fixed; bottom:28px; right:28px; background:var(--success); color:#fff; padding:12px 22px; border-radius:25px; font-weight:600; font-size:0.85rem; box-shadow:0 4px 12px rgba(0,0,0,0.2); z-index:999; animation:slideUp 0.35s ease; }
         @keyframes slideUp { from { transform:translateY(60px); opacity:0; } to { transform:translateY(0); opacity:1; } }
         @media print { .sidebar, .btn, .toast, .no-print { display:none!important; } .main { margin-left:0!important; padding:10px!important; } }
@@ -83,589 +83,588 @@
     </style>
 </head>
 <body>
-    <div class="login-overlay" id="loginOverlay">
-        <div class="login-card">
-            <h2>PROYECCIONES Y SERVICIOS ARBOLEDA, S.A.S.</h2>
-            <div class="subtitle">Dashboard de Ingresos 2026</div>
-            <input type="text" id="loginUsername" placeholder="Usuario" autocomplete="off">
-            <input type="password" id="loginPassword" placeholder="Contraseña">
-            <button class="btn-login" onclick="iniciarSesion()">Ingresar</button>
-            <div class="error-msg" id="loginError"></div>
-            <div class="hint" style="font-size:0.7rem;opacity:0.8;margin-top:10px;">admin / admin123 | gerente / gerente123 | invitado / invitado</div>
+<div class="login-overlay" id="loginOverlay">
+    <div class="login-card">
+        <h2>PROYECCIONES Y SERVICIOS ARBOLEDA, S.A.S.</h2>
+        <div class="subtitle">Dashboard de Ingresos 2026</div>
+        <input type="text" id="loginUsername" placeholder="Usuario" autocomplete="off">
+        <input type="password" id="loginPassword" placeholder="Contraseña">
+        <button class="btn-login" onclick="iniciarSesion()">Ingresar</button>
+        <div class="error-msg" id="loginError"></div>
+        <div class="hint" style="font-size:0.7rem;opacity:0.8;margin-top:10px;">admin / admin123 | gerente / gerente123 | invitado / invitado</div>
+    </div>
+</div>
+
+<aside class="sidebar no-print" id="sidebar" style="display:none;">
+    <div class="sidebar-header"><h2>PROYECCIONES Y SERVICIOS<br>ARBOLEDA, S.A.S.</h2></div>
+    <nav class="sidebar-nav">
+        <div class="nav-section">Mensual</div>
+        <button data-view="monthly" data-month="0">Enero</button>
+        <button data-view="monthly" data-month="1">Febrero</button>
+        <button data-view="monthly" data-month="2">Marzo</button>
+        <button data-view="monthly" data-month="3">Abril</button>
+        <button data-view="monthly" data-month="4">Mayo</button>
+        <button data-view="monthly" data-month="5">Junio</button>
+        <button data-view="monthly" data-month="6">Julio</button>
+        <button data-view="monthly" data-month="7">Agosto</button>
+        <button data-view="monthly" data-month="8">Septiembre</button>
+        <button data-view="monthly" data-month="9">Octubre</button>
+        <button data-view="monthly" data-month="10">Noviembre</button>
+        <button data-view="monthly" data-month="11">Diciembre</button>
+        <div class="nav-section">Consolidado</div>
+        <button data-view="annual">Total Anual</button>
+        <button data-view="dashboard">Dashboard KPIs</button>
+    </nav>
+    <div class="sidebar-footer">
+        <span id="loggedUserLabel"></span>
+        <span style="display:flex;align-items:center;gap:4px;"><span class="sync-indicator sync-ok" id="syncDot"></span><button class="btn-logout" onclick="cerrarSesion()">Salir</button></span>
+    </div>
+</aside>
+
+<main class="main" id="mainContent" style="display:none;">
+    <div class="view-panel active" id="view-monthly">
+        <div class="topbar"><h1 id="monthTitle"></h1><div><span class="badge" id="metaBadge"></span><button class="btn btn-print btn-sm keep-print" onclick="imprimirVista()">Imprimir</button></div></div>
+        <div class="form-card no-print" id="formIngreso" style="display:none;">
+            <h3>Agregar / Editar Ingreso</h3>
+            <div class="form-grid">
+                <div class="form-group"><label>Fecha</label><input type="date" id="ingFecha"></div>
+                <div class="form-group"><label>Cliente</label><input type="text" id="ingCliente"></div>
+                <div class="form-group"><label>Presupuesto</label><input type="text" id="ingPresupuesto"></div>
+                <div class="form-group"><label>Línea</label><select id="ingLinea"><option value="HPS">HPS</option><option value="IMPORT">IMPORT</option><option value="">Sin clasificar</option></select></div>
+                <div class="form-group"><label>Producto/Servicio</label><input type="text" id="ingProducto"></div>
+                <div class="form-group"><label>Monto Bruto (USD)</label><input type="number" id="ingMonto" step="0.01"></div>
+            </div>
+            <div class="btn-row" style="margin-top:12px;display:flex;gap:10px;"><button class="btn btn-primary" onclick="guardarIngreso()">Guardar</button><button class="btn btn-accent" onclick="limpiarFormIngreso()">Nuevo</button></div>
+        </div>
+        <div class="kpi-grid" id="kpiMonth"></div>
+        <div class="charts-row">
+            <div class="chart-card"><h3>Composición HPS vs IMPORT</h3><canvas id="chartHPSImport"></canvas></div>
+            <div class="chart-card"><h3>Evolución Diaria de Ingresos</h3><canvas id="chartDiario"></canvas></div>
+        </div>
+        <div class="form-card"><h3>Ingresos del Mes</h3><div class="table-wrapper" id="tablaIngresos"></div></div>
+    </div>
+    <div class="view-panel" id="view-annual">
+        <div class="topbar"><h1>Total Anual 2026</h1><div><span class="badge">Meta: $1,250,000</span><button class="btn btn-print btn-sm keep-print" onclick="imprimirVista()">Imprimir</button></div></div>
+        <div class="kpi-grid" id="kpiAnnual"></div>
+        <div class="charts-row">
+            <div class="chart-card"><h3>Evolución Mensual de Ingresos (Neto)</h3><canvas id="chartEvolucion"></canvas></div>
+            <div class="chart-card"><h3>HPS vs IMPORT por Mes (Bruto)</h3><canvas id="chartHPSImportMensual"></canvas></div>
+        </div>
+        <div class="form-card"><h3>Top Clientes</h3><div class="table-wrapper" id="tablaClientes"></div></div>
+    </div>
+    <div class="view-panel" id="view-dashboard">
+        <div class="topbar"><h1>Dashboard KPIs</h1><button class="btn btn-print btn-sm keep-print" onclick="imprimirVista()">Imprimir</button></div>
+        <div class="kpi-grid" id="kpiDashboard"></div>
+        <div class="charts-row">
+            <div class="chart-card"><h3>Cumplimiento de Meta Anual (Neto)</h3><canvas id="chartMeta"></canvas></div>
+            <div class="chart-card"><h3>Distribución HPS vs IMPORT</h3><canvas id="chartDistribucion"></canvas></div>
         </div>
     </div>
+</main>
 
-    <aside class="sidebar no-print" id="sidebar" style="display:none;">
-        <div class="sidebar-header"><h2>PROYECCIONES Y SERVICIOS<br>ARBOLEDA, S.A.S.</h2></div>
-        <nav class="sidebar-nav">
-            <div class="nav-section">Mensual</div>
-            <button data-view="monthly" data-month="0">Enero</button>
-            <button data-view="monthly" data-month="1">Febrero</button>
-            <button data-view="monthly" data-month="2">Marzo</button>
-            <button data-view="monthly" data-month="3">Abril</button>
-            <button data-view="monthly" data-month="4">Mayo</button>
-            <button data-view="monthly" data-month="5">Junio</button>
-            <button data-view="monthly" data-month="6">Julio</button>
-            <button data-view="monthly" data-month="7">Agosto</button>
-            <button data-view="monthly" data-month="8">Septiembre</button>
-            <button data-view="monthly" data-month="9">Octubre</button>
-            <button data-view="monthly" data-month="10">Noviembre</button>
-            <button data-view="monthly" data-month="11">Diciembre</button>
-            <div class="nav-section">Consolidado</div>
-            <button data-view="annual">Total Anual</button>
-            <button data-view="dashboard">Dashboard KPIs</button>
-        </nav>
-        <div class="sidebar-footer">
-            <span id="loggedUserLabel"></span>
-            <span style="display:flex;align-items:center;gap:4px;"><span class="sync-indicator sync-ok" id="syncDot"></span><button class="btn-logout" onclick="cerrarSesion()">Salir</button></span>
-        </div>
-    </aside>
+<script>
+    // ---------- CONFIGURACIÓN JSONBIN.IO ----------
+    const JSONBIN_API_KEY = '$2a$10$b9o.f47WPvbdYcpPTAYaheNddQDe3H6iaPlcnAfffDDkBBm6x3VHS';
+    const JSONBIN_BIN_ID = '6a033b75250b1311c33c9cda';
 
-    <main class="main" id="mainContent" style="display:none;">
-        <div class="view-panel active" id="view-monthly">
-            <div class="topbar"><h1 id="monthTitle"></h1><div><span class="badge" id="metaBadge"></span><button class="btn btn-print btn-sm keep-print" onclick="imprimirVista()">Imprimir</button></div></div>
-            <div class="form-card no-print" id="formIngreso" style="display:none;">
-                <h3>Agregar / Editar Ingreso</h3>
-                <div class="form-grid">
-                    <div class="form-group"><label>Fecha</label><input type="date" id="ingFecha"></div>
-                    <div class="form-group"><label>Cliente</label><input type="text" id="ingCliente"></div>
-                    <div class="form-group"><label>Presupuesto</label><input type="text" id="ingPresupuesto"></div>
-                    <div class="form-group"><label>Línea</label><select id="ingLinea"><option value="HPS">HPS</option><option value="IMPORT">IMPORT</option><option value="">Sin clasificar</option></select></div>
-                    <div class="form-group"><label>Producto/Servicio</label><input type="text" id="ingProducto"></div>
-                    <div class="form-group"><label>Monto Bruto (USD)</label><input type="number" id="ingMonto" step="0.01"></div>
-                </div>
-                <div class="btn-row" style="margin-top:12px;display:flex;gap:10px;"><button class="btn btn-primary" onclick="guardarIngreso()">Guardar</button><button class="btn btn-accent" onclick="limpiarFormIngreso()">Nuevo</button></div>
-            </div>
-            <div class="kpi-grid" id="kpiMonth"></div>
-            <div class="charts-row">
-                <div class="chart-card"><h3>Composición HPS vs IMPORT</h3><canvas id="chartHPSImport"></canvas></div>
-                <div class="chart-card"><h3>Evolución Diaria de Ingresos</h3><canvas id="chartDiario"></canvas></div>
-            </div>
-            <div class="form-card"><h3>Ingresos del Mes</h3><div class="table-wrapper" id="tablaIngresos"></div></div>
-        </div>
-        <div class="view-panel" id="view-annual">
-            <div class="topbar"><h1>Total Anual 2026</h1><div><span class="badge">Meta: $1,250,000</span><button class="btn btn-print btn-sm keep-print" onclick="imprimirVista()">Imprimir</button></div></div>
-            <div class="kpi-grid" id="kpiAnnual"></div>
-            <div class="charts-row">
-                <div class="chart-card"><h3>Evolución Mensual de Ingresos</h3><canvas id="chartEvolucion"></canvas></div>
-                <div class="chart-card"><h3>HPS vs IMPORT por Mes</h3><canvas id="chartHPSImportMensual"></canvas></div>
-            </div>
-            <div class="form-card"><h3>Top Clientes</h3><div class="table-wrapper" id="tablaClientes"></div></div>
-        </div>
-        <div class="view-panel" id="view-dashboard">
-            <div class="topbar"><h1>Dashboard KPIs</h1><button class="btn btn-print btn-sm keep-print" onclick="imprimirVista()">Imprimir</button></div>
-            <div class="kpi-grid" id="kpiDashboard"></div>
-            <div class="charts-row">
-                <div class="chart-card"><h3>Cumplimiento de Meta Anual (Neto)</h3><canvas id="chartMeta"></canvas></div>
-                <div class="chart-card"><h3>Distribución HPS vs IMPORT</h3><canvas id="chartDistribucion"></canvas></div>
-            </div>
-        </div>
-    </main>
+    window.imprimirVista = function() { window.print(); };
+    const USUARIOS = { 'admin': { password: 'admin123', rol: 'admin', nombre: 'Administrador' }, 'gerente': { password: 'gerente123', rol: 'admin', nombre: 'Gerente' }, 'invitado': { password: 'invitado', rol: 'invitado', nombre: 'Invitado' } };
+    let usuarioActual = null;
+    const MESES = ['Enero','Febrero','Marzo','Abril','Mayo','Junio','Julio','Agosto','Septiembre','Octubre','Noviembre','Diciembre'];
+    const META_ANUAL = 1250000;
+    const META_MENSUAL = META_ANUAL / 12;
+    let ingresos = [];
+    let currentMonth = 0;
+    let nextId = Date.now();
 
-    <script>
-        // CONFIGURACIÓN JSONBIN.IO (mismo bin, datos de ingresos)
-        const JSONBIN_API_KEY = '$2a$10$b9o.f47WPvbdYcpPTAYaheNddQDe3H6iaPlcnAfffDDkBBm6x3VHS';
-        const JSONBIN_BIN_ID = '6a033b75250b1311c33c9cda';
-
-        window.imprimirVista = function() { window.print(); };
-        const USUARIOS = { 'admin': { password: 'admin123', rol: 'admin', nombre: 'Administrador' }, 'gerente': { password: 'gerente123', rol: 'admin', nombre: 'Gerente' }, 'invitado': { password: 'invitado', rol: 'invitado', nombre: 'Invitado' } };
-        let usuarioActual = null;
-        const MESES = ['Enero','Febrero','Marzo','Abril','Mayo','Junio','Julio','Agosto','Septiembre','Octubre','Noviembre','Diciembre'];
-        const META_ANUAL = 1250000;
-        const META_MENSUAL = META_ANUAL / 12;
-        let ingresos = [];
-        let currentMonth = 0;
-        let nextId = Date.now();
-
-        // ---- Persistencia JSONBIN (sin cambios) ----
-        async function cargarDatosRemotos() {
-            try {
-                const resp = await fetch(`https://api.jsonbin.io/v3/b/${JSONBIN_BIN_ID}/latest?ts=${Date.now()}`, {
-                    headers: { 'X-Master-Key': JSONBIN_API_KEY }
-                });
-                if (!resp.ok) throw new Error('Error al cargar datos remotos');
-                const data = await resp.json();
-                ingresos = (data.record && data.record.data) ? data.record.data : [];
-                ingresos.forEach(t => { if (!t.id) t.id = nextId++; });
-                if (ingresos.length > 0) {
-                    const maxId = Math.max(...ingresos.map(t => t.id || 0));
-                    if (maxId >= nextId) nextId = maxId + 1;
-                }
-                actualizarIndicadorSync(true);
-                return true;
-            } catch (error) {
-                console.warn('Cargando respaldo local:', error.message);
-                actualizarIndicadorSync(false);
-                return false;
+    // ---------- PERSISTENCIA (igual que antes) ----------
+    async function cargarDatosRemotos() {
+        try {
+            const resp = await fetch(`https://api.jsonbin.io/v3/b/${JSONBIN_BIN_ID}/latest?ts=${Date.now()}`, {
+                headers: { 'X-Master-Key': JSONBIN_API_KEY }
+            });
+            if (!resp.ok) throw new Error('Error al cargar datos remotos');
+            const data = await resp.json();
+            ingresos = (data.record && data.record.data) ? data.record.data : [];
+            ingresos.forEach(t => { if (!t.id) t.id = nextId++; });
+            if (ingresos.length > 0) {
+                const maxId = Math.max(...ingresos.map(t => t.id || 0));
+                if (maxId >= nextId) nextId = maxId + 1;
             }
+            actualizarIndicadorSync(true);
+            return true;
+        } catch (error) {
+            console.warn('Cargando respaldo local:', error.message);
+            actualizarIndicadorSync(false);
+            return false;
         }
+    }
 
-        async function guardarDatosRemotos() {
-            try {
-                const resp = await fetch(`https://api.jsonbin.io/v3/b/${JSONBIN_BIN_ID}`, {
-                    method: 'PUT',
-                    headers: { 'Content-Type': 'application/json', 'X-Master-Key': JSONBIN_API_KEY },
-                    body: JSON.stringify({ data: ingresos })
-                });
-                if (!resp.ok) throw new Error('Error al guardar datos remotos');
-                actualizarIndicadorSync(true);
-                return true;
-            } catch (error) {
-                console.error('Error al guardar en la nube:', error.message);
-                actualizarIndicadorSync(false);
-                mostrarToast('⚠️ Sin conexión al servidor. Los cambios se guardarán localmente.');
-                return false;
-            }
+    async function guardarDatosRemotos() {
+        try {
+            const resp = await fetch(`https://api.jsonbin.io/v3/b/${JSONBIN_BIN_ID}`, {
+                method: 'PUT',
+                headers: { 'Content-Type': 'application/json', 'X-Master-Key': JSONBIN_API_KEY },
+                body: JSON.stringify({ data: ingresos })
+            });
+            if (!resp.ok) throw new Error('Error al guardar datos remotos');
+            actualizarIndicadorSync(true);
+            return true;
+        } catch (error) {
+            console.error('Error al guardar en la nube:', error.message);
+            actualizarIndicadorSync(false);
+            mostrarToast('⚠️ Sin conexión al servidor. Los cambios se guardarán localmente.');
+            return false;
         }
+    }
 
-        function actualizarIndicadorSync(ok) {
-            const dot = document.getElementById('syncDot');
-            if (dot) {
-                dot.className = 'sync-indicator ' + (ok ? 'sync-ok' : 'sync-pending');
-                dot.title = ok ? 'Datos sincronizados' : 'Sin conexión - cambios locales';
-            }
+    function actualizarIndicadorSync(ok) {
+        const dot = document.getElementById('syncDot');
+        if (dot) {
+            dot.className = 'sync-indicator ' + (ok ? 'sync-ok' : 'sync-pending');
+            dot.title = ok ? 'Datos sincronizados' : 'Sin conexión - cambios locales';
         }
+    }
 
-        // --------------------------------------------------------------
-        // DATOS REALES DESDE CSV (ENERO - ABRIL 2026) + MAYO (existente)
-        // --------------------------------------------------------------
-        function convertirFechaCSV(fechaStr, mesIdx) {
-            // formato "3-ene" , "18-feb", "1-mar", etc. Asumimos año 2026
+    // ---------- CARGA COMPLETA DE DATOS DESDE CSV (100% registros) ----------
+    function construirDatosCompletos() {
+        const registros = [];
+        let id = 1;
+
+        // Función auxiliar para convertir fecha "dd-mmm" a "2026-mm-dd"
+        function fechaDesdeCSV(fechaStr, mesIndex) {
             const partes = fechaStr.split('-');
-            if(partes.length !== 2) return `2026-${(mesIdx+1).toString().padStart(2,'0')}-01`; // fallback
+            if (partes.length !== 2) return `2026-${(mesIndex+1).toString().padStart(2,'0')}-01`;
             const dia = parseInt(partes[0]);
             const mesAbr = partes[1].toLowerCase();
-            const mesesMap = { 'ene':0,'feb':1,'mar':2,'abr':3,'may':4,'jun':5,'jul':6,'ago':7,'sep':8,'oct':9,'nov':10,'dic':11 };
-            let mes = mesesMap[mesAbr];
-            if(mes === undefined) mes = mesIdx;
+            const meses = { 'ene':0, 'feb':1, 'mar':2, 'abr':3, 'may':4, 'jun':5, 'jul':6, 'ago':7, 'sep':8, 'oct':9, 'nov':10, 'dic':11 };
+            let mes = meses[mesAbr];
+            if (mes === undefined) mes = mesIndex;
             return `2026-${(mes+1).toString().padStart(2,'0')}-${dia.toString().padStart(2,'0')}`;
         }
 
-        function construirDatosDesdeCSV() {
-            const registros = [];
-            let id = 1;
-
-            // Helper para agregar transacción con cálculo de neto (18% ITBIS, excepto si explícitamente SIN ITBIS)
-            const agregar = (fechaRaw, mes, cliente, presupuesto, linea, producto, montoBruto, sinItbis = false) => {
-                const bruto = parseFloat(String(montoBruto).replace(/[$,]/g, '').trim());
-                if(isNaN(bruto) || bruto === 0) return;
-                let neto = sinItbis ? bruto : bruto / 1.18;
-                neto = Math.round(neto * 100) / 100;
-                const fecha = convertirFechaCSV(fechaRaw, mes);
-                registros.push({
-                    id: id++,
-                    fecha: fecha,
-                    mes: mes,
-                    cliente: cliente.trim(),
-                    presupuesto: String(presupuesto).trim(),
-                    linea: linea && linea.trim() !== '' ? linea.trim() : '',
-                    producto: producto && producto.trim() !== '' ? producto.trim() : '',
-                    monto: bruto,        // bruto
-                    neto: neto           // neto calculado
-                });
-            };
-
-            // ---------- ENERO (CSV) ----------
-            const ene = [
-                ["3-ene","CILCAMA- HOTEL CASA MARINA REEF","23005826","HPS","TARJETAS DE ACCESO",959.34],
-                ["6-ene","MODUS VIVENDIS - HOTEL EL BARCO","23006048","HPS","TARJETAS DE ACCESO",793.90],
-                ["6-ene","CONST. JOHANN REYES MARMOLEJOS","23005947","IMPORT","PUERTA RF MESKER",1562.50],
-                ["6-ene","CILCAMA- HOTEL CASA MARINA REEF","23005826","HPS","TARJETAS DE ACCESO",732.78],
-                ["7-ene","HOTEL MAJESTIC","23005689","HPS","TARJETAS DE ACCESO",566.39],
-                ["8-ene","HOTEL MAJESTIC","23005701","HPS","TARJETAS DE ACCESO",1681.50],
-                ["9-ene","HOTEL MAJESTIC","23005715","HPS","TARJETAS DE ACCESO",565.07],
-                ["12-ene","CORAL GULF ASSETS - HOTEL ST. REGIS CAP CANA","23005758","HPS","CAJAS FUERTES SD 49",6061.79],
-                ["13-ene","GRUPO ARHE SRL","23005633","IMPORT","PUERTA RF MESKER",2119.20],
-                ["13-ene","PLAYA GRANDE HOLDINGS","23004672","HPS","CERRADURAS VINGCARD",935.51],
-                ["16-ene","CORAL GULF ASSETS - HOTEL ST. REGIS CAP CANA","23005162","","",5011.24],
-                ["19-ene","DOMINICANOTEL- HOTEL SENATOR PUERTO PLATA","23006064","","",1452.54],
-                ["19-ene","VIVA INTERNATIONAL","23006059","","",171.86],
-                ["20-ene","CILCAMA- HOTEL CASA MARINA REEF","23005694","","",2447.57],
-                ["20-ene","CILCAMA- HOTEL CASA MARINA REEF","23006128","","",6802.32],
-                ["21-ene","GLOBAL SPACE TRADINGS SRL","23006139","","",1561.36],
-                ["22-ene","LIMBURG INVESTMENTS - HOTEL ALOFT Y MARRIOTT","23005552","","",2646.00],
-                ["22-ene","SOLAYA HOTELS - HOTEL EDEN ROC","23005996","","",2332.21],
-                ["23-ene","CIBAYO","23005184","","",4313.21],
-                ["23-ene","ATLAMBAR MANAGEMENT","23006150","","",13876.23],
-                ["27-ene","PUERTO DE LA CRUZ - HOTEL OCEAN BLUE","23005912","","",1299.06],
-                ["27-ene","MEGEVE INVESTMENTS - HOTEL KIMPTON LAS MERCEDES","23005714-5176","","",1102.35],
-                ["27-ene","DOMINICANOTEL- HOTEL SENATOR PUERTO PLATA","23006113","","",744.52],
-                ["28-ene","NC12- HOTEL SECRETS AND DREAMS MICHES","23006009","","",6651.76],
-                ["29-ene","NC12- HOTEL SECRETS AND DREAMS MICHES","23006009","","",3357.00],
-                ["29-ene","ALIBEY DEL CARIBE","23003664-3581-6040","","",15127.44],
-                ["29-ene","ALIBEY DEL CARIBE","23003813","","",204.47],
-                ["30-ene","CASA ARQUIDIOCESANA MARIA DE LA ALT.","23006144","","",2104.57],
-                ["30-ene","CASA ARQUIDIOCESANA MARIA DE LA ALT.","23006145","","",350.74],
-                ["30-ene","MODUS VIVENDIS - HOTEL EL BARCO","23006162","","",112.10],
-                ["30-ene","REINA SANTO- HOTEL BILLINI","23005882","","",131.74],
-                ["30-ene","HOSPITALITY OF DR - HOTEL FOUR POINTS SD","23005895","","",1417.50]
-            ];
-            ene.forEach(r => agregar(r[0], 0, r[1], r[2], r[3], r[4], r[5]));
-
-            // ---------- FEBRERO ----------
-            const feb = [
-                ["2-feb","CONST. JOHANN REYES MARMOLEJOS","23005947","","",1230.67],
-                ["3-feb","CONSTRUCTORA DOVARO","23005759-6149","","",5721.47],
-                ["4-feb","DOMINICANOTEL- HOTEL SENATOR PP","23006063-6064","","",5523.05],
-                ["7-feb","JABAQUE INVERSIONES - HOTEL W PUNTA CANA","23006235-6214","","",7972.20],
-                ["10-feb","MDINA HOLDINGS - HOTEL OCEAN CLUB","23006252","","",802.39],
-                ["10-feb","SOLAYA HOTELS AND RESORTS - HOTEL EDEN ROC","23006014","","",8831.54],
-                ["10-feb","ASOCIACION DOMINICANA PROFAMILIA","23006209","","",259.60],
-                ["11-feb","GRUPO ARHE","23005633","","",908.23],
-                ["13-feb","NEXUS GESTION","23005765-5988-6073","","",673.46],
-                ["16-feb","DOMINICANOTEL- HOTEL SENATOR PP","23006272","","",100.30],
-                ["17-feb","CILCAMA- HOTEL CASA MARINA REEF","23006128","","",2915.28],
-                ["17-feb","JOY LUXURY VILLAGE","23006124","","",1875.84],
-                ["18-feb","HOTELERA BAVARO- HOTEL BARCELO BAVARO","23006133","","",356.39],
-                ["18-feb","CONSTRUCTORA AYBAR","23006236","","",482.58],
-                ["19-feb","NC12, SRL - HOTEL SECRETS AND DREAMS MICHES","23006103","","",762.71],
-                ["20-feb","JABAQUE INVERSIONES - HOTEL W PUNTA CANA","23006062","","",676.31],
-                ["23-feb","HOTEL LOPESAN COSTA BAVARO","23006037","","",3562.77],
-                ["24-feb","INVERSIONES ZAHENA- HOTEL HARD ROCK PUNTA CANA","23005927","","",20208.68],
-                ["24-feb","PB HOTEL - HOTEL ROYALTON PUNTA CANA","23006241","","",931.79],
-                ["24-feb","CONSTRUCTORA AYBAR","23006251","","",4249.10],
-                ["24-feb","KALAYA INVESTMENT","23006318","","",4153.83],
-                ["24-feb","ING360 SRL","23006308","","",708.15],
-                ["25-feb","JABAQUE INVERSIONES - HOTEL W PUNTA CANA","23005941-6167","","",7092.51],
-                ["25-feb","CEEI ENERGIAS RENOVABLES","23003876","","",2152.67],
-                ["25-feb","PB HOTEL - HOTEL ROYALTON PUNTA CANA","23006155","","",53.11],
-                ["25-feb","PUERTO DE LA CRUZ COMERCIAL- HOTEL OCEAN BLUE","23005943-6002","","",1470.16],
-                ["25-feb","CONSTRUCTORA ROPECA","23005878","","",7016.36],
-                ["26-feb","SOLAYA HOTELS AND RESORTS - HOTEL EDEN ROC","23005933","","",3447.08]
-            ];
-            feb.forEach(r => agregar(r[0], 1, r[1], r[2], r[3], r[4], r[5]));
-
-            // ---------- MARZO (omitir línea comentada) ----------
-            const mar = [
-                ["1-mar","MAJESTIC DESARROLLOS DEL CARIBE","23006032","","",4252.07],
-                ["3-mar","HOTEL COSTA LARIMAR","23006340","","",920.39],
-                ["3-mar","NEXUS GESTION","23006258","","",293.82],
-                ["4-mar","HABITA GROUP GDC SRL","23006296","","",1300.00],
-                ["4-mar","DOMINICANOTEL","23005939","","",504.37],
-                ["5-mar","RL HABITT","23006298","","",219.48],
-                ["5-mar","PUNTA CANA HOLDINGS","23006044-6215","","",673.33],
-                ["6-mar","HOTEL SATAMA","23006407","","",878.81],
-                ["6-mar","JABAQUE INVERSIONES SAS","23005473-6061","","",761.10],
-                ["6-mar","UVEALTO 2015, S.A.","23006217","","",4953.11],
-                ["9-mar","LIMBURG INVESTMENTS","23006156","","",559.32],
-                ["10-mar","BLUECAP HOLDINGS DR SAS","23005799","","",425.34],
-                ["10-mar","INVERSIONES ZAHENA","23005376","","",273.95],
-                ["12-mar","NC12 SRL","23006103-6108","","",6289.40],
-                ["13-mar","INVERSIONES OCRE ROJO","23005950","","",1185.43],
-                ["13-mar","INVERSIONES ABEY","23006431","","",24844.14],
-                ["13-mar","JABAQUE INVERSIONES SAS","23006168-6313","","",2171.20],
-                ["16-mar","CAMP DAVID RANCH","23006293","","",174.64],
-                ["17-mar","HOTELERA BAVARO","23005914","","",356.91],
-                ["18-mar","CASA MARINA SAMANA","23005872","","",3470.38],
-                ["19-mar","UVEALTO 2015, S.A.","23006276","","",1942.50],
-                ["20-mar","VARALLO COMERCIAL","23006325","","",1270.50],
-                ["20-mar","ROPECA","23006433","","",538.46],
-                ["21-mar","ZEMI MICHES","23006007","","",1525.28],
-                ["23-mar","LIMBURG INVESTMENTS","23005552","","",1814.40],
-                ["23-mar","JOY LUXURY VILLAGE","23006017","","",2000.00],
-                ["24-mar","PUERTO DE LA CRUZ COMERCIAL","23006074-6317","","",1574.15],
-                ["24-mar","CORAL GULF ASSETS","23006410","","",89.09],
-                ["25-mar","MEGEVE INVESTMENT","23006053","","",5495.94],
-                ["25-mar","PLAYA GRANDE GOLF RESORTS","23006409","","",247.38],
-                ["25-mar","UVEALTO 2015, S.A.","23005885","","",1391.50],
-                ["25-mar","CORAL GULF ASSETS","23006213","","",1924.52],
-                ["26-mar","CASA MARINA SAMANA","23005872","","",3470.38],
-                ["26-mar","UVEALTO 2015, S.A.","23005999-6217","","",1666.82],
-                ["27-mar","ALISH GROUP","23003806","","",4464.91],
-                ["27-mar","CILCAMA","23006321","","",44623.20],
-                ["27-mar","HABITA GROUP GDC SRL","23006296","","",555.00],
-                ["27-mar","INVERSIONES OCRE ROJO","23006478","","",1159.19],
-                ["27-mar","JABAQUE INVERSIONES SAS","23005245-6437","","",4124.40],
-                ["28-mar","CILCAMA","23006475","","",977.04],
-                ["30-mar","VARALLO COMERCIAL","23006477","","",568.02],
-                ["31-mar","RESIDENCIAL REGATTA LIVING I","23006436","","",318.60],
-                ["31-mar","CORAL GULF ASSETS/ MORRIS MURDOCK","23006469","","",2205.48],
-                ["31-mar","CEEI ENERGIAS RENOVABLES","23003876","","",2152.67],
-                ["31-mar","DOMINICAN DEVELOPMENTS DDP","23006462","","",221.84]
-            ];
-            mar.forEach(r => agregar(r[0], 2, r[1], r[2], r[3], r[4], r[5]));
-
-            // ---------- ABRIL (respetar SIN ITBIS en dos líneas) ----------
-            const abr = [
-                ["8-abr","REINA SANTO - HOTEL BILLINI","23006172","","",302.08],
-                ["9-abr","ZEMI MICHES","23005967-6072-6212","","",2251.27],
-                ["10-abr","INVERSIONES ZAHENA- HOTEL HARD ROCK","23006336","","",139.69],
-                ["10-abr","GSM INVESTMENTS - HOTEL DREAMS MACAO","23006335-5363-6450","","",11937.99],
-                ["13-abr","HOTEL SECRETS/DREAMS LA ROMANA","23005642","","",291351.27],
-                ["14-abr","INVERSIONES ARRECIFE","23006366","","",163.00],
-                ["15-abr","INVERSIONES OCRE ROJO","23005999","","",952.60],
-                ["15-abr","HOTELERIA OASIS CARIBBEAN","23006569","","",70.62],
-                ["15-abr","VARALLO COMERCIAL- SECRETS ROYAL","23005998","","",1247.49],
-                ["16-abr","IDEARE GROUP","23006561","","",1023.00],
-                ["17-abr","DOMINICANOTEL - HOTEL SENATOR PP","23006346-6362","","",1365.86],
-                ["20-abr","SANS SOUCI PORTS","23006417","","",5675.59],
-                ["20-abr","NEXUS GESTION","23006357-6408-6524-6250","","",1459.76],
-                ["21-abr","EL PALMAR BUSINESS- HOTEL INTERCONTINENTAL","23006463","","",200.60],
-                ["21-abr","CILCAMA- HOTEL CASA MARINA REEF","23006499","","",200.60],
-                ["21-abr","ALIBEY DEL CARIBE- HOTEL HYATT CENTRIC","23006351","","",157.23],
-                ["21-abr","GREEN STAR PARTNERS, S.A.S.- STARBUCKS","23006582","","",1217.11],
-                ["22-abr","INVERSIONES GINARK - HOTEL SANCTUARY CAP CANA","23006468","","",515.60],
-                ["22-abr","COBEGA- HOTEL EMOTIONS JUAN DOLIO","23006476","","",820.81],
-                ["23-abr","NC12, SRL- SECRETS AND DREAMS MICHES","23006121-6122","","",12602.20],
-                ["24-abr","INVERSIONES OCRE ROJO","23006478","","",1016.23],
-                ["27-abr","VARALLO COMERCIAL- SECRETS ROYAL","23006444","","",23745.60],
-                ["27-abr","VARALLO COMERCIAL- SECRETS ROYAL","23006477","","",343.66],
-                ["27-abr","UVEALTO 2015- SECRETS TIDES","23006348","","",775.26],
-                ["27-abr","DOMINICANOTEL - HOTEL SENATOR PP","23005906","","",3413.27],
-                ["27-abr","INVERSIONES ZAHENA- HOTEL HARD ROCK","23005376","","",137.19],
-                ["28-abr","MXC DOMINICANA - PROYECTO YANUNA","23006465","","",1256.46],   // SIN ITBIS
-                ["28-abr","CF HOTELS LLC- HOTEL COURTYARD MAXIMO GOMEZ","23006419-23006492","","",2764.66],
-                ["29-abr","MXC DOMINICANA - PROYECTO YANUNA","23006466","","",965.50],    // SIN ITBIS
-                ["29-abr","PACKAGING SOLUTIONS PACKSOL SRL","23006593","","",510.16]
-            ];
-            abr.forEach(r => {
-                const sinItbis = (r[1].includes("MXC DOMINICANA") && (r[5] === 1256.46 || r[5] === 965.50));
-                agregar(r[0], 3, r[1], r[2], r[3], r[4], r[5], sinItbis);
-            });
-
-            // ---------- MAYO (datos existentes del HTML original) ----------
-            const may = [
-                ["2026-05-01","UVEALTO 2015- HOTEL SECRETS TIDES","23006421","HPS","PRODUCTOS HPS",11866.44],
-                ["2026-05-04","DOMINICANOTEL - HOTEL SENATOR","23005906","","",1137.75],
-                ["2026-05-04","DOMINICANOTEL - HOTEL SENATOR","23006587","","",1489.04],
-                ["2026-05-05","CORAL GULF ASSETS- HOTEL ST. REGIS","23006572","HPS","PROYECTO ST. REGIS CAP CANA",1137.54],
-                ["2026-05-06","INVERSIONES OCRE ROJO","23006564","HPS","PRODUCTOS HPS",43081.62],
-                ["2026-05-08","JABAQUE INVERSIONES SAS - HOTEL W PUNTA CANA","","","",5964.02],
-                ["2026-05-08","BLUE DOWNTOWN HOTEL PC SRL","23006651","","",14547.00],
-                ["2026-05-09","DKLIC PLUS INVESTMENT SRL","23006677","","",24.30]
-            ];
-            may.forEach(r => {
-                let fecha = r[0];
-                let mes = 4;
-                if(fecha.includes("2026-05")) mes = 4;
-                const bruto = r[6];
-                const neto = bruto / 1.18;
-                registros.push({ id: id++, fecha: r[0], mes: mes, cliente: r[1], presupuesto: r[2], linea: r[3] || "", producto: r[4] || "", monto: bruto, neto: Math.round(neto*100)/100 });
-            });
-
-            return registros;
-        }
-
-        function precargarIngresos() {
-            const datosCSV = construirDatosDesdeCSV();
-            ingresos = datosCSV;
-            if(ingresos.length) nextId = Math.max(...ingresos.map(t=>t.id)) + 1;
-            else nextId = Date.now();
-        }
-
-        async function inicializarDatos() {
-            const exito = await cargarDatosRemotos();
-            if (!exito || !Array.isArray(ingresos) || ingresos.length === 0) {
-                precargarIngresos();
-                await guardarDatosRemotos();
-            } else if (ingresos.length < 80) {
-                // si hay pocos registros, actualizamos con datos completos de CSV
-                precargarIngresos();
-                await guardarDatosRemotos();
-                mostrarToast('✅ Datos actualizados desde archivos CSV (Enero-Abril 2026)');
-            }
-        }
-
-        // ---- Funciones auxiliares (KPIs con neto y bruto) ----
-        function filtrarPorMes(mes) { return ingresos.filter(t => t.mes === mes); }
-        function calcularKPIsMes(mes) {
-            const tx = filtrarPorMes(mes);
-            const totalBruto = tx.reduce((s, t) => s + t.monto, 0);
-            const totalNeto = tx.reduce((s, t) => s + (t.neto !== undefined ? t.neto : t.monto / 1.18), 0);
-            const hpsBruto = tx.filter(t => t.linea === 'HPS').reduce((s, t) => s + t.monto, 0);
-            const impBruto = tx.filter(t => t.linea === 'IMPORT').reduce((s, t) => s + t.monto, 0);
-            const sinClasif = totalBruto - hpsBruto - impBruto;
-            return { totalBruto, totalNeto, hps: hpsBruto, imp: impBruto, sinClasif, cantTotal: tx.length, cumplimiento: META_MENSUAL > 0 ? (totalNeto / META_MENSUAL * 100) : 0 };
-        }
-
-        // ---- Renderizado Mensual (con número consecutivo y neto/bruto) ----
-        let currentView = 'monthly';
-        function setActiveView(view, month = null) {
-            document.querySelectorAll('.view-panel').forEach(p => p.classList.remove('active'));
-            document.querySelectorAll('.sidebar-nav button').forEach(b => b.classList.remove('active'));
-            if (view === 'monthly' && month !== null) {
-                currentMonth = month;
-                document.getElementById('view-monthly').classList.add('active');
-                document.querySelector(`[data-view="monthly"][data-month="${month}"]`).classList.add('active');
-                renderizarMes(month);
-            } else if (view === 'annual') {
-                document.getElementById('view-annual').classList.add('active');
-                document.querySelector('[data-view="annual"]').classList.add('active');
-                renderizarAnual();
-            } else {
-                document.getElementById('view-dashboard').classList.add('active');
-                document.querySelector('[data-view="dashboard"]').classList.add('active');
-                renderizarDashboard();
-            }
-            currentView = view;
-        }
-
-        function renderizarMes(mes) {
-            const kpi = calcularKPIsMes(mes);
-            document.getElementById('monthTitle').textContent = `${MESES[mes]} 2026`;
-            document.getElementById('metaBadge').textContent = `Meta (Neto): $${META_MENSUAL.toLocaleString()}`;
-            const esAdmin = usuarioActual && usuarioActual.rol === 'admin';
-            document.getElementById('formIngreso').style.display = esAdmin ? 'block' : 'none';
-            document.getElementById('kpiMonth').innerHTML = `
-                <div class="kpi-card"><div class="kpi-label">Ingresos Brutos</div><div class="kpi-value">$${kpi.totalBruto.toLocaleString(undefined,{minimumFractionDigits:2})}</div></div>
-                <div class="kpi-card"><div class="kpi-label">Ingresos Netos</div><div class="kpi-value">$${kpi.totalNeto.toLocaleString(undefined,{minimumFractionDigits:2})}</div></div>
-                <div class="kpi-card"><div class="kpi-label">Ingresos HPS (Bruto)</div><div class="kpi-value">$${kpi.hps.toLocaleString()}</div></div>
-                <div class="kpi-card"><div class="kpi-label">Ingresos IMPORT (Bruto)</div><div class="kpi-value">$${kpi.imp.toLocaleString()}</div></div>
-                <div class="kpi-card ${kpi.cumplimiento>=100?'success':'danger'}"><div class="kpi-label">Cumplimiento Meta (Neto)</div><div class="kpi-value">${kpi.cumplimiento.toFixed(1)}%</div></div>
-            `;
-            const ctx1 = document.getElementById('chartHPSImport').getContext('2d');
-            if (window._chartHPSImport) window._chartHPSImport.destroy();
-            window._chartHPSImport = new Chart(ctx1, { type: 'doughnut', data: { labels: ['HPS','IMPORT','Sin clasificar'], datasets: [{ data: [kpi.hps, kpi.imp, kpi.sinClasif], backgroundColor: ['#1a3c5e','#e8873a','#cccccc'] }] }, options: { responsive: true } });
-            const tx = filtrarPorMes(mes);
-            const dias = {};
-            tx.forEach(t => { const d = t.fecha.substring(8,10); dias[d] = (dias[d]||0) + t.monto; });
-            const sortedDias = Object.entries(dias).sort((a,b)=>parseInt(a[0])-parseInt(b[0]));
-            const ctx2 = document.getElementById('chartDiario').getContext('2d');
-            if (window._chartDiario) window._chartDiario.destroy();
-            window._chartDiario = new Chart(ctx2, { type: 'bar', data: { labels: sortedDias.map(d=>`Día ${d[0]}`), datasets: [{ data: sortedDias.map(d=>d[1]), backgroundColor: '#2c5f8a' }] }, options: { responsive: true, plugins: { legend: { display: false } } } });
-            let html = `<tr><th>N°</th><th>Fecha</th><th>Cliente</th><th>Presupuesto</th><th>Línea</th><th>Producto/S</th><th>Monto Bruto</th><th>Monto Neto</th>${esAdmin?'<th></th>':''}</tr>`;
-            tx.forEach((t, idx) => {
-                const netoMostrar = (t.neto !== undefined ? t.neto : t.monto / 1.18).toFixed(2);
-                html += `<tr>
-                    <td>${idx+1}</td>
-                    <td>${t.fecha}</td>
-                    <td>${t.cliente}</td>
-                    <td>${t.presupuesto}</td>
-                    <td>${t.linea||'-'}</td>
-                    <td>${t.producto||'-'}</td>
-                    <td>$${t.monto.toFixed(2)}</td>
-                    <td>$${netoMostrar}</td>
-                    ${esAdmin?`<td><button class="btn btn-sm" style="background:#c62828;color:#fff;" onclick="eliminarIngreso(${t.id})">X</button></td>`:''}
-                </tr>`;
-            });
-            html += '</table>';
-            document.getElementById('tablaIngresos').innerHTML = html;
-        }
-
-        window.eliminarIngreso = async function(id) {
-            if (!usuarioActual || usuarioActual.rol !== 'admin') return;
-            const index = ingresos.findIndex(t => t.id === id);
-            if (index === -1) { mostrarToast('❌ No se pudo eliminar'); return; }
-            ingresos.splice(index, 1);
-            await guardarDatosRemotos();
-            renderizarMes(currentMonth);
-            mostrarToast('🗑️ Ingreso eliminado');
-        };
-
-        window.guardarIngreso = async function() {
-            if (!usuarioActual || usuarioActual.rol !== 'admin') return;
-            const fecha = document.getElementById('ingFecha').value;
-            const mes = new Date(fecha + 'T00:00:00').getMonth();
-            const bruto = parseFloat(document.getElementById('ingMonto').value) || 0;
-            const neto = bruto / 1.18;
-            const nuevo = {
-                id: nextId++, fecha, mes,
-                cliente: document.getElementById('ingCliente').value,
-                presupuesto: document.getElementById('ingPresupuesto').value,
-                linea: document.getElementById('ingLinea').value,
-                producto: document.getElementById('ingProducto').value,
+        // Agregar registro
+        function agregar(fechaRaw, mes, cliente, presupuesto, linea, producto, montoBruto, sinItbis = false) {
+            const bruto = parseFloat(String(montoBruto).replace(/[$,]/g, '').trim());
+            if (isNaN(bruto) || bruto === 0) return;
+            const neto = sinItbis ? bruto : bruto / 1.18;
+            const fecha = fechaDesdeCSV(fechaRaw, mes);
+            registros.push({
+                id: id++,
+                fecha: fecha,
+                mes: mes,
+                cliente: cliente.trim(),
+                presupuesto: String(presupuesto).trim(),
+                linea: (linea && linea.trim() !== '') ? linea.trim() : '',
+                producto: (producto && producto.trim() !== '') ? producto.trim() : '',
                 monto: bruto,
                 neto: Math.round(neto * 100) / 100
-            };
-            ingresos.push(nuevo);
+            });
+        }
+
+        // ===================== ENERO (30 registros) =====================
+        const ene = [
+            ["3-ene","CILCAMA- HOTEL CASA MARINA REEF","23005826","HPS","TARJETAS DE ACCESO",959.34],
+            ["6-ene","MODUS VIVENDIS - HOTEL EL BARCO","23006048","HPS","TARJETAS DE ACCESO",793.90],
+            ["6-ene","CONST. JOHANN REYES MARMOLEJOS","23005947","IMPORT","PUERTA RF MESKER",1562.50],
+            ["6-ene","CILCAMA- HOTEL CASA MARINA REEF","23005826","HPS","TARJETAS DE ACCESO",732.78],
+            ["7-ene","HOTEL MAJESTIC","23005689","HPS","TARJETAS DE ACCESO",566.39],
+            ["8-ene","HOTEL MAJESTIC","23005701","HPS","TARJETAS DE ACCESO",1681.50],
+            ["9-ene","HOTEL MAJESTIC","23005715","HPS","TARJETAS DE ACCESO",565.07],
+            ["12-ene","CORAL GULF ASSETS - HOTEL ST. REGIS CAP CANA","23005758","HPS","CAJAS FUERTES SD 49",6061.79],
+            ["13-ene","GRUPO ARHE SRL","23005633","IMPORT","PUERTA RF MESKER",2119.20],
+            ["13-ene","PLAYA GRANDE HOLDINGS","23004672","HPS","CERRADURAS VINGCARD",935.51],
+            ["16-ene","CORAL GULF ASSETS - HOTEL ST. REGIS CAP CANA","23005162","","",5011.24],
+            ["19-ene","DOMINICANOTEL- HOTEL SENATOR PUERTO PLATA","23006064","","",1452.54],
+            ["19-ene","VIVA INTERNATIONAL","23006059","","",171.86],
+            ["20-ene","CILCAMA- HOTEL CASA MARINA REEF","23005694","","",2447.57],
+            ["20-ene","CILCAMA- HOTEL CASA MARINA REEF","23006128","","",6802.32],
+            ["21-ene","GLOBAL SPACE TRADINGS SRL","23006139","","",1561.36],
+            ["22-ene","LIMBURG INVESTMENTS - HOTEL ALOFT Y MARRIOTT","23005552","","",2646.00],
+            ["22-ene","SOLAYA HOTELS - HOTEL EDEN ROC","23005996","","",2332.21],
+            ["23-ene","CIBAYO","23005184","","",4313.21],
+            ["23-ene","ATLAMBAR MANAGEMENT","23006150","","",13876.23],
+            ["27-ene","PUERTO DE LA CRUZ - HOTEL OCEAN BLUE","23005912","","",1299.06],
+            ["27-ene","MEGEVE INVESTMENTS - HOTEL KIMPTON LAS MERCEDES","23005714-5176","","",1102.35],
+            ["27-ene","DOMINICANOTEL- HOTEL SENATOR PUERTO PLATA","23006113","","",744.52],
+            ["28-ene","NC12- HOTEL SECRETS AND DREAMS MICHES","23006009","","",6651.76],
+            ["29-ene","NC12- HOTEL SECRETS AND DREAMS MICHES","23006009","","",3357.00],
+            ["29-ene","ALIBEY DEL CARIBE","23003664-3581-6040","","",15127.44],
+            ["29-ene","ALIBEY DEL CARIBE","23003813","","",204.47],
+            ["30-ene","CASA ARQUIDIOCESANA MARIA DE LA ALT.","23006144","","",2104.57],
+            ["30-ene","CASA ARQUIDIOCESANA MARIA DE LA ALT.","23006145","","",350.74],
+            ["30-ene","MODUS VIVENDIS - HOTEL EL BARCO","23006162","","",112.10],
+            ["30-ene","REINA SANTO- HOTEL BILLINI","23005882","","",131.74],
+            ["30-ene","HOSPITALITY OF DR - HOTEL FOUR POINTS SD","23005895","","",1417.50]
+        ];
+        ene.forEach(r => agregar(r[0], 0, r[1], r[2], r[3], r[4], r[5]));
+
+        // ===================== FEBRERO (28 registros) =====================
+        const feb = [
+            ["2-feb","CONST. JOHANN REYES MARMOLEJOS","23005947","","",1230.67],
+            ["3-feb","CONSTRUCTORA DOVARO","23005759-6149","","",5721.47],
+            ["4-feb","DOMINICANOTEL- HOTEL SENATOR PP","23006063-6064","","",5523.05],
+            ["7-feb","JABAQUE INVERSIONES - HOTEL W PUNTA CANA","23006235-6214","","",7972.20],
+            ["10-feb","MDINA HOLDINGS - HOTEL OCEAN CLUB","23006252","","",802.39],
+            ["10-feb","SOLAYA HOTELS AND RESORTS - HOTEL EDEN ROC","23006014","","",8831.54],
+            ["10-feb","ASOCIACION DOMINICANA PROFAMILIA","23006209","","",259.60],
+            ["11-feb","GRUPO ARHE","23005633","","",908.23],
+            ["13-feb","NEXUS GESTION","23005765-5988-6073","","",673.46],
+            ["16-feb","DOMINICANOTEL- HOTEL SENATOR PP","23006272","","",100.30],
+            ["17-feb","CILCAMA- HOTEL CASA MARINA REEF","23006128","","",2915.28],
+            ["17-feb","JOY LUXURY VILLAGE","23006124","","",1875.84],
+            ["18-feb","HOTELERA BAVARO- HOTEL BARCELO BAVARO","23006133","","",356.39],
+            ["18-feb","CONSTRUCTORA AYBAR","23006236","","",482.58],
+            ["19-feb","NC12, SRL - HOTEL SECRETS AND DREAMS MICHES","23006103","","",762.71],
+            ["20-feb","JABAQUE INVERSIONES - HOTEL W PUNTA CANA","23006062","","",676.31],
+            ["23-feb","HOTEL LOPESAN COSTA BAVARO","23006037","","",3562.77],
+            ["24-feb","INVERSIONES ZAHENA- HOTEL HARD ROCK PUNTA CANA","23005927","","",20208.68],
+            ["24-feb","PB HOTEL - HOTEL ROYALTON PUNTA CANA","23006241","","",931.79],
+            ["24-feb","CONSTRUCTORA AYBAR","23006251","","",4249.10],
+            ["24-feb","KALAYA INVESTMENT","23006318","","",4153.83],
+            ["24-feb","ING360 SRL","23006308","","",708.15],
+            ["25-feb","JABAQUE INVERSIONES - HOTEL W PUNTA CANA","23005941-6167","","",7092.51],
+            ["25-feb","CEEI ENERGIAS RENOVABLES","23003876","","",2152.67],
+            ["25-feb","PB HOTEL - HOTEL ROYALTON PUNTA CANA","23006155","","",53.11],
+            ["25-feb","PUERTO DE LA CRUZ COMERCIAL- HOTEL OCEAN BLUE","23005943-6002","","",1470.16],
+            ["25-feb","CONSTRUCTORA ROPECA","23005878","","",7016.36],
+            ["26-feb","SOLAYA HOTELS AND RESORTS - HOTEL EDEN ROC","23005933","","",3447.08]
+        ];
+        feb.forEach(r => agregar(r[0], 1, r[1], r[2], r[3], r[4], r[5]));
+
+        // ===================== MARZO (45 registros) =====================
+        const mar = [
+            ["1-mar","MAJESTIC DESARROLLOS DEL CARIBE","23006032","","",4252.07],
+            ["3-mar","HOTEL COSTA LARIMAR","23006340","","",920.39],
+            ["3-mar","NEXUS GESTION","23006258","","",293.82],
+            ["4-mar","HABITA GROUP GDC SRL","23006296","","",1300.00],
+            ["4-mar","DOMINICANOTEL","23005939","","",504.37],
+            ["5-mar","RL HABITT","23006298","","",219.48],
+            ["5-mar","PUNTA CANA HOLDINGS","23006044-6215","","",673.33],
+            ["6-mar","HOTEL SATAMA","23006407","","",878.81],
+            ["6-mar","JABAQUE INVERSIONES SAS","23005473-6061","","",761.10],
+            ["6-mar","UVEALTO 2015, S.A.","23006217","","",4953.11],
+            ["9-mar","LIMBURG INVESTMENTS","23006156","","",559.32],
+            ["10-mar","BLUECAP HOLDINGS DR SAS","23005799","","",425.34],
+            ["10-mar","INVERSIONES ZAHENA","23005376","","",273.95],
+            ["12-mar","NC12 SRL","23006103-6108","","",6289.40],
+            ["13-mar","INVERSIONES OCRE ROJO","23005950","","",1185.43],
+            ["13-mar","INVERSIONES ABEY","23006431","","",24844.14],
+            ["13-mar","JABAQUE INVERSIONES SAS","23006168-6313","","",2171.20],
+            ["16-mar","CAMP DAVID RANCH","23006293","","",174.64],
+            ["17-mar","HOTELERA BAVARO","23005914","","",356.91],
+            ["18-mar","CASA MARINA SAMANA","23005872","","",3470.38],
+            ["19-mar","UVEALTO 2015, S.A.","23006276","","",1942.50],
+            ["20-mar","VARALLO COMERCIAL","23006325","","",1270.50],
+            ["20-mar","ROPECA","23006433","","",538.46],
+            ["21-mar","ZEMI MICHES","23006007","","",1525.28],
+            ["23-mar","LIMBURG INVESTMENTS","23005552","","",1814.40],
+            ["23-mar","JOY LUXURY VILLAGE","23006017","","",2000.00],
+            ["24-mar","PUERTO DE LA CRUZ COMERCIAL","23006074-6317","","",1574.15],
+            ["24-mar","CORAL GULF ASSETS","23006410","","",89.09],
+            ["25-mar","MEGEVE INVESTMENT","23006053","","",5495.94],
+            ["25-mar","PLAYA GRANDE GOLF RESORTS","23006409","","",247.38],
+            ["25-mar","UVEALTO 2015, S.A.","23005885","","",1391.50],
+            ["25-mar","CORAL GULF ASSETS","23006213","","",1924.52],
+            ["26-mar","CASA MARINA SAMANA","23005872","","",3470.38],
+            ["26-mar","UVEALTO 2015, S.A.","23005999-6217","","",1666.82],
+            ["27-mar","ALISH GROUP","23003806","","",4464.91],
+            ["27-mar","CILCAMA","23006321","","",44623.20],
+            ["27-mar","HABITA GROUP GDC SRL","23006296","","",555.00],
+            ["27-mar","INVERSIONES OCRE ROJO","23006478","","",1159.19],
+            ["27-mar","JABAQUE INVERSIONES SAS","23005245-6437","","",4124.40],
+            ["28-mar","CILCAMA","23006475","","",977.04],
+            ["30-mar","VARALLO COMERCIAL","23006477","","",568.02],
+            ["31-mar","RESIDENCIAL REGATTA LIVING I","23006436","","",318.60],
+            ["31-mar","CORAL GULF ASSETS/ MORRIS MURDOCK","23006469","","",2205.48],
+            ["31-mar","CEEI ENERGIAS RENOVABLES","23003876","","",2152.67],
+            ["31-mar","DOMINICAN DEVELOPMENTS DDP","23006462","","",221.84]
+        ];
+        mar.forEach(r => agregar(r[0], 2, r[1], r[2], r[3], r[4], r[5]));
+
+        // ===================== ABRIL (30 registros, dos con SIN ITBIS) =====================
+        const abr = [
+            ["8-abr","REINA SANTO - HOTEL BILLINI","23006172","","",302.08],
+            ["9-abr","ZEMI MICHES","23005967-6072-6212","","",2251.27],
+            ["10-abr","INVERSIONES ZAHENA- HOTEL HARD ROCK","23006336","","",139.69],
+            ["10-abr","GSM INVESTMENTS - HOTEL DREAMS MACAO","23006335-5363-6450","","",11937.99],
+            ["13-abr","HOTEL SECRETS/DREAMS LA ROMANA","23005642","","",291351.27],
+            ["14-abr","INVERSIONES ARRECIFE","23006366","","",163.00],
+            ["15-abr","INVERSIONES OCRE ROJO","23005999","","",952.60],
+            ["15-abr","HOTELERIA OASIS CARIBBEAN","23006569","","",70.62],
+            ["15-abr","VARALLO COMERCIAL- SECRETS ROYAL","23005998","","",1247.49],
+            ["16-abr","IDEARE GROUP","23006561","","",1023.00],
+            ["17-abr","DOMINICANOTEL - HOTEL SENATOR PP","23006346-6362","","",1365.86],
+            ["20-abr","SANS SOUCI PORTS","23006417","","",5675.59],
+            ["20-abr","NEXUS GESTION","23006357-6408-6524-6250","","",1459.76],
+            ["21-abr","EL PALMAR BUSINESS- HOTEL INTERCONTINENTAL","23006463","","",200.60],
+            ["21-abr","CILCAMA- HOTEL CASA MARINA REEF","23006499","","",200.60],
+            ["21-abr","ALIBEY DEL CARIBE- HOTEL HYATT CENTRIC","23006351","","",157.23],
+            ["21-abr","GREEN STAR PARTNERS, S.A.S.- STARBUCKS","23006582","","",1217.11],
+            ["22-abr","INVERSIONES GINARK - HOTEL SANCTUARY CAP CANA","23006468","","",515.60],
+            ["22-abr","COBEGA- HOTEL EMOTIONS JUAN DOLIO","23006476","","",820.81],
+            ["23-abr","NC12, SRL- SECRETS AND DREAMS MICHES","23006121-6122","","",12602.20],
+            ["24-abr","INVERSIONES OCRE ROJO","23006478","","",1016.23],
+            ["27-abr","VARALLO COMERCIAL- SECRETS ROYAL","23006444","","",23745.60],
+            ["27-abr","VARALLO COMERCIAL- SECRETS ROYAL","23006477","","",343.66],
+            ["27-abr","UVEALTO 2015- SECRETS TIDES","23006348","","",775.26],
+            ["27-abr","DOMINICANOTEL - HOTEL SENATOR PP","23005906","","",3413.27],
+            ["27-abr","INVERSIONES ZAHENA- HOTEL HARD ROCK","23005376","","",137.19],
+            ["28-abr","MXC DOMINICANA - PROYECTO YANUNA","23006465","","",1256.46],  // SIN ITBIS
+            ["28-abr","CF HOTELS LLC- HOTEL COURTYARD MAXIMO GOMEZ","23006419-23006492","","",2764.66],
+            ["29-abr","MXC DOMINICANA - PROYECTO YANUNA","23006466","","",965.50],   // SIN ITBIS
+            ["29-abr","PACKAGING SOLUTIONS PACKSOL SRL","23006593","","",510.16]
+        ];
+        abr.forEach(r => {
+            const sinItbis = (r[1].includes("MXC DOMINICANA") && (r[5] === 1256.46 || r[5] === 965.50));
+            agregar(r[0], 3, r[1], r[2], r[3], r[4], r[5], sinItbis);
+        });
+
+        // ===================== MAYO (datos originales del HTML) =====================
+        const may = [
+            ["2026-05-01","UVEALTO 2015- HOTEL SECRETS TIDES","23006421","HPS","PRODUCTOS HPS",11866.44],
+            ["2026-05-04","DOMINICANOTEL - HOTEL SENATOR","23005906","","",1137.75],
+            ["2026-05-04","DOMINICANOTEL - HOTEL SENATOR","23006587","","",1489.04],
+            ["2026-05-05","CORAL GULF ASSETS- HOTEL ST. REGIS","23006572","HPS","PROYECTO ST. REGIS CAP CANA",1137.54],
+            ["2026-05-06","INVERSIONES OCRE ROJO","23006564","HPS","PRODUCTOS HPS",43081.62],
+            ["2026-05-08","JABAQUE INVERSIONES SAS - HOTEL W PUNTA CANA","","","",5964.02],
+            ["2026-05-08","BLUE DOWNTOWN HOTEL PC SRL","23006651","","",14547.00],
+            ["2026-05-09","DKLIC PLUS INVESTMENT SRL","23006677","","",24.30]
+        ];
+        may.forEach(r => {
+            const fecha = r[0];
+            const mes = 4; // Mayo es índice 4
+            const bruto = r[5];
+            const neto = bruto / 1.18;
+            registros.push({
+                id: id++,
+                fecha: fecha,
+                mes: mes,
+                cliente: r[1],
+                presupuesto: r[2],
+                linea: r[3] || "",
+                producto: r[4] || "",
+                monto: bruto,
+                neto: Math.round(neto * 100) / 100
+            });
+        });
+
+        return registros;
+    }
+
+    function precargarIngresos() {
+        ingresos = construirDatosCompletos();
+        if (ingresos.length) nextId = Math.max(...ingresos.map(t => t.id)) + 1;
+        else nextId = Date.now();
+    }
+
+    async function inicializarDatos() {
+        const exito = await cargarDatosRemotos();
+        if (!exito || !Array.isArray(ingresos) || ingresos.length < 130) {  // si hay menos de 130 registros, recargar todo
+            precargarIngresos();
             await guardarDatosRemotos();
-            renderizarMes(currentMonth);
-            limpiarFormIngreso();
-            mostrarToast('✅ Ingreso guardado');
-        };
-
-        window.limpiarFormIngreso = function() {
-            document.getElementById('ingFecha').value = '';
-            document.getElementById('ingCliente').value = '';
-            document.getElementById('ingPresupuesto').value = '';
-            document.getElementById('ingProducto').value = '';
-            document.getElementById('ingMonto').value = '';
-        };
-
-        function renderizarAnual() {
-            let totalBruto = 0, totalNeto = 0, totalHPS = 0, totalIMP = 0;
-            const clientes = {};
-            const porMesBruto = Array(12).fill(0);
-            const porMesNeto = Array(12).fill(0);
-            const hpsPorMes = Array(12).fill(0);
-            const impPorMes = Array(12).fill(0);
-            ingresos.forEach(t => {
-                const netoVal = t.neto !== undefined ? t.neto : t.monto / 1.18;
-                totalBruto += t.monto;
-                totalNeto += netoVal;
-                porMesBruto[t.mes] += t.monto;
-                porMesNeto[t.mes] += netoVal;
-                if (t.linea === 'HPS') { totalHPS += t.monto; hpsPorMes[t.mes] += t.monto; }
-                else if (t.linea === 'IMPORT') { totalIMP += t.monto; impPorMes[t.mes] += t.monto; }
-                clientes[t.cliente] = (clientes[t.cliente] || 0) + t.monto;
-            });
-            const cumplimientoNeto = META_ANUAL > 0 ? (totalNeto / META_ANUAL * 100) : 0;
-            document.getElementById('kpiAnnual').innerHTML = `
-                <div class="kpi-card"><div class="kpi-label">Ingresos Brutos</div><div class="kpi-value">$${totalBruto.toLocaleString()}</div></div>
-                <div class="kpi-card"><div class="kpi-label">Ingresos Netos</div><div class="kpi-value">$${totalNeto.toLocaleString()}</div></div>
-                <div class="kpi-card"><div class="kpi-label">HPS (Bruto)</div><div class="kpi-value">$${totalHPS.toLocaleString()}</div></div>
-                <div class="kpi-card"><div class="kpi-label">IMPORT (Bruto)</div><div class="kpi-value">$${totalIMP.toLocaleString()}</div></div>
-                <div class="kpi-card ${cumplimientoNeto>=100?'success':'danger'}"><div class="kpi-label">Cumplimiento Meta (Neto)</div><div class="kpi-value">${cumplimientoNeto.toFixed(1)}%</div></div>
-            `;
-            const ctx1 = document.getElementById('chartEvolucion').getContext('2d');
-            if (window._chartEvolucion) window._chartEvolucion.destroy();
-            window._chartEvolucion = new Chart(ctx1, { type: 'line', data: { labels: MESES, datasets: [{ label: 'Ingresos Netos', data: porMesNeto, borderColor: '#1a3c5e', fill: false }, { label: 'Meta Mensual (Neto)', data: Array(12).fill(META_MENSUAL), borderColor: '#c62828', borderDash: [5], fill: false }] }, options: { responsive: true } });
-            const ctx2 = document.getElementById('chartHPSImportMensual').getContext('2d');
-            if (window._chartHPSImportMensual) window._chartHPSImportMensual.destroy();
-            window._chartHPSImportMensual = new Chart(ctx2, { type: 'bar', data: { labels: MESES, datasets: [{ label: 'HPS', data: hpsPorMes, backgroundColor: '#1a3c5e' }, { label: 'IMPORT', data: impPorMes, backgroundColor: '#e8873a' }] }, options: { responsive: true, scales: { x: { stacked: true }, y: { stacked: true } } } });
-            const sorted = Object.entries(clientes).sort((a,b)=>b[1]-a[1]).slice(0,15);
-            let html = '<tr><th>Cliente</th><th>Total Bruto</th></tr>';
-            sorted.forEach(([c,v]) => html += `<tr><td>${c}</td><td>$${v.toLocaleString()}</td></tr>`);
-            html += '</table>';
-            document.getElementById('tablaClientes').innerHTML = html;
+            mostrarToast('✅ Datos actualizados con todos los registros de enero a mayo 2026');
         }
+    }
 
-        function renderizarDashboard() {
-            let totalBruto = 0, totalNeto = 0, totalHPS = 0, totalIMP = 0;
-            ingresos.forEach(t => { 
-                totalBruto += t.monto; 
-                totalNeto += (t.neto !== undefined ? t.neto : t.monto / 1.18);
-                if (t.linea === 'HPS') totalHPS += t.monto;
-                else if (t.linea === 'IMPORT') totalIMP += t.monto;
-            });
-            const cumplimiento = META_ANUAL > 0 ? (totalNeto / META_ANUAL * 100) : 0;
-            const mejorMes = Array(12).fill(0).map((_,i) => filtrarPorMes(i).reduce((s,t)=>s + (t.neto!==undefined?t.neto:t.monto/1.18),0));
-            const mejor = Math.max(...mejorMes);
-            const mejorMesIdx = mejorMes.indexOf(mejor);
-            document.getElementById('kpiDashboard').innerHTML = `
-                <div class="kpi-card"><div class="kpi-label">Total Bruto</div><div class="kpi-value">$${totalBruto.toLocaleString()}</div></div>
-                <div class="kpi-card"><div class="kpi-label">Total Neto</div><div class="kpi-value">$${totalNeto.toLocaleString()}</div></div>
-                <div class="kpi-card accent"><div class="kpi-label">HPS (Bruto)</div><div class="kpi-value">$${totalHPS.toLocaleString()}</div></div>
-                <div class="kpi-card info"><div class="kpi-label">IMPORT (Bruto)</div><div class="kpi-value">$${totalIMP.toLocaleString()}</div></div>
-                <div class="kpi-card ${cumplimiento>=100?'success':'danger'}"><div class="kpi-label">Cumplimiento Meta (Neto)</div><div class="kpi-value">${cumplimiento.toFixed(1)}%</div></div>
-                <div class="kpi-card"><div class="kpi-label">Mejor Mes (Neto)</div><div class="kpi-value">${MESES[mejorMesIdx]}</div><div class="kpi-sub">$${mejor.toLocaleString()}</div></div>
-            `;
-            const ctx1 = document.getElementById('chartMeta').getContext('2d');
-            if (window._chartMeta) window._chartMeta.destroy();
-            window._chartMeta = new Chart(ctx1, { type: 'bar', data: { labels: ['Real Neto','Meta Neto'], datasets: [{ data: [totalNeto, META_ANUAL], backgroundColor: ['#2e7d32','#1565c0'] }] }, options: { responsive: true, plugins: { legend: { display: false } } } });
-            const ctx2 = document.getElementById('chartDistribucion').getContext('2d');
-            if (window._chartDistribucion) window._chartDistribucion.destroy();
-            window._chartDistribucion = new Chart(ctx2, { type: 'pie', data: { labels: ['HPS','IMPORT','Sin clasificar'], datasets: [{ data: [totalHPS, totalIMP, totalBruto - totalHPS - totalIMP], backgroundColor: ['#1a3c5e','#e8873a','#cccccc'] }] }, options: { responsive: true } });
+    // ---------- FUNCIONES AUXILIARES ----------
+    function filtrarPorMes(mes) { return ingresos.filter(t => t.mes === mes); }
+    function calcularKPIsMes(mes) {
+        const tx = filtrarPorMes(mes);
+        const totalBruto = tx.reduce((s, t) => s + t.monto, 0);
+        const totalNeto = tx.reduce((s, t) => s + t.neto, 0);
+        const hpsBruto = tx.filter(t => t.linea === 'HPS').reduce((s, t) => s + t.monto, 0);
+        const impBruto = tx.filter(t => t.linea === 'IMPORT').reduce((s, t) => s + t.monto, 0);
+        const sinClasif = totalBruto - hpsBruto - impBruto;
+        return { totalBruto, totalNeto, hps: hpsBruto, imp: impBruto, sinClasif, cantTotal: tx.length, cumplimiento: META_MENSUAL > 0 ? (totalNeto / META_MENSUAL * 100) : 0 };
+    }
+
+    let currentView = 'monthly';
+    function setActiveView(view, month = null) {
+        document.querySelectorAll('.view-panel').forEach(p => p.classList.remove('active'));
+        document.querySelectorAll('.sidebar-nav button').forEach(b => b.classList.remove('active'));
+        if (view === 'monthly' && month !== null) {
+            currentMonth = month;
+            document.getElementById('view-monthly').classList.add('active');
+            document.querySelector(`[data-view="monthly"][data-month="${month}"]`).classList.add('active');
+            renderizarMes(month);
+        } else if (view === 'annual') {
+            document.getElementById('view-annual').classList.add('active');
+            document.querySelector('[data-view="annual"]').classList.add('active');
+            renderizarAnual();
+        } else {
+            document.getElementById('view-dashboard').classList.add('active');
+            document.querySelector('[data-view="dashboard"]').classList.add('active');
+            renderizarDashboard();
         }
+        currentView = view;
+    }
 
-        function mostrarToast(msg) { const e = document.querySelector('.toast'); if (e) e.remove(); const t = document.createElement('div'); t.className='toast'; t.textContent=msg; document.body.appendChild(t); setTimeout(()=>t.remove(),2500); }
+    function renderizarMes(mes) {
+        const kpi = calcularKPIsMes(mes);
+        document.getElementById('monthTitle').textContent = `${MESES[mes]} 2026`;
+        document.getElementById('metaBadge').textContent = `Meta (Neto): $${META_MENSUAL.toLocaleString()}`;
+        const esAdmin = usuarioActual && usuarioActual.rol === 'admin';
+        document.getElementById('formIngreso').style.display = esAdmin ? 'block' : 'none';
+        document.getElementById('kpiMonth').innerHTML = `
+            <div class="kpi-card"><div class="kpi-label">Ingresos Brutos</div><div class="kpi-value">$${kpi.totalBruto.toLocaleString(undefined,{minimumFractionDigits:2})}</div></div>
+            <div class="kpi-card"><div class="kpi-label">Ingresos Netos</div><div class="kpi-value">$${kpi.totalNeto.toLocaleString(undefined,{minimumFractionDigits:2})}</div></div>
+            <div class="kpi-card"><div class="kpi-label">Ingresos HPS (Bruto)</div><div class="kpi-value">$${kpi.hps.toLocaleString()}</div></div>
+            <div class="kpi-card"><div class="kpi-label">Ingresos IMPORT (Bruto)</div><div class="kpi-value">$${kpi.imp.toLocaleString()}</div></div>
+            <div class="kpi-card ${kpi.cumplimiento>=100?'success':'danger'}"><div class="kpi-label">Cumplimiento Meta (Neto)</div><div class="kpi-value">${kpi.cumplimiento.toFixed(1)}%</div></div>
+        `;
+        // Gráfico composición
+        const ctx1 = document.getElementById('chartHPSImport').getContext('2d');
+        if (window._chartHPSImport) window._chartHPSImport.destroy();
+        window._chartHPSImport = new Chart(ctx1, { type: 'doughnut', data: { labels: ['HPS','IMPORT','Sin clasificar'], datasets: [{ data: [kpi.hps, kpi.imp, kpi.sinClasif], backgroundColor: ['#1a3c5e','#e8873a','#cccccc'] }] }, options: { responsive: true } });
+        // Gráfico diario
+        const tx = filtrarPorMes(mes);
+        const dias = {};
+        tx.forEach(t => { const d = t.fecha.substring(8,10); dias[d] = (dias[d]||0) + t.monto; });
+        const sortedDias = Object.entries(dias).sort((a,b)=>parseInt(a[0])-parseInt(b[0]));
+        const ctx2 = document.getElementById('chartDiario').getContext('2d');
+        if (window._chartDiario) window._chartDiario.destroy();
+        window._chartDiario = new Chart(ctx2, { type: 'bar', data: { labels: sortedDias.map(d=>`Día ${d[0]}`), datasets: [{ data: sortedDias.map(d=>d[1]), backgroundColor: '#2c5f8a' }] }, options: { responsive: true, plugins: { legend: { display: false } } } });
+        // Tabla con número consecutivo (N°)
+        let html = `<table><th>N°</th><th>Fecha</th><th>Cliente</th><th>Presupuesto</th><th>Línea</th><th>Producto/S</th><th>Monto Bruto</th><th>Monto Neto</th>${esAdmin?'<th></th>':''}</tr>`;
+        tx.forEach((t, idx) => {
+            html += `<tr>
+                <td>${idx+1}</td>
+                <td>${t.fecha}</td>
+                <td>${t.cliente}</td>
+                <td>${t.presupuesto}</td>
+                <td>${t.linea||'-'}</td>
+                <td>${t.producto||'-'}</td>
+                <td>$${t.monto.toFixed(2)}</td>
+                <td>$${t.neto.toFixed(2)}</td>
+                ${esAdmin?`<td><button class="btn btn-sm" style="background:#c62828;color:#fff;" onclick="eliminarIngreso(${t.id})">X</button></td>`:''}
+            </tr>`;
+        });
+        html += '</table>';
+        document.getElementById('tablaIngresos').innerHTML = html;
+    }
 
-        window.iniciarSesion = async function() {
-            const u = document.getElementById('loginUsername').value.trim();
-            const p = document.getElementById('loginPassword').value;
-            document.getElementById('loginError').textContent = '';
-            const user = USUARIOS[u.toLowerCase()];
-            if (!user || user.password !== p) { document.getElementById('loginError').textContent = 'Credenciales incorrectas.'; return; }
-            usuarioActual = user;
-            document.getElementById('loginOverlay').style.display = 'none';
-            document.getElementById('sidebar').style.display = 'flex';
-            document.getElementById('mainContent').style.display = 'block';
-            document.getElementById('loggedUserLabel').textContent = user.nombre;
-            await inicializarDatos();
-            setActiveView('monthly', 0);
+    window.eliminarIngreso = async function(id) {
+        if (!usuarioActual || usuarioActual.rol !== 'admin') return;
+        const index = ingresos.findIndex(t => t.id === id);
+        if (index === -1) { mostrarToast('❌ No se pudo eliminar'); return; }
+        ingresos.splice(index, 1);
+        await guardarDatosRemotos();
+        renderizarMes(currentMonth);
+        mostrarToast('🗑️ Ingreso eliminado');
+    };
+
+    window.guardarIngreso = async function() {
+        if (!usuarioActual || usuarioActual.rol !== 'admin') return;
+        const fecha = document.getElementById('ingFecha').value;
+        const mes = new Date(fecha + 'T00:00:00').getMonth();
+        const bruto = parseFloat(document.getElementById('ingMonto').value) || 0;
+        const neto = bruto / 1.18;
+        const nuevo = {
+            id: nextId++, fecha, mes,
+            cliente: document.getElementById('ingCliente').value,
+            presupuesto: document.getElementById('ingPresupuesto').value,
+            linea: document.getElementById('ingLinea').value,
+            producto: document.getElementById('ingProducto').value,
+            monto: bruto,
+            neto: Math.round(neto * 100) / 100
         };
-        window.cerrarSesion = function() { usuarioActual = null; document.getElementById('loginOverlay').style.display = 'flex'; document.getElementById('sidebar').style.display = 'none'; document.getElementById('mainContent').style.display = 'none'; };
-        document.querySelectorAll('.sidebar-nav button[data-view]').forEach(btn => { btn.addEventListener('click', function() { const view = this.dataset.view; const month = this.dataset.month !== undefined ? parseInt(this.dataset.month) : null; setActiveView(view, month); }); });
-    </script>
+        ingresos.push(nuevo);
+        await guardarDatosRemotos();
+        renderizarMes(currentMonth);
+        limpiarFormIngreso();
+        mostrarToast('✅ Ingreso guardado');
+    };
+
+    window.limpiarFormIngreso = function() {
+        document.getElementById('ingFecha').value = '';
+        document.getElementById('ingCliente').value = '';
+        document.getElementById('ingPresupuesto').value = '';
+        document.getElementById('ingProducto').value = '';
+        document.getElementById('ingMonto').value = '';
+    };
+
+    function renderizarAnual() {
+        let totalBruto = 0, totalNeto = 0, totalHPS = 0, totalIMP = 0;
+        const clientes = {};
+        const porMesNeto = Array(12).fill(0);
+        const hpsPorMes = Array(12).fill(0);
+        const impPorMes = Array(12).fill(0);
+        ingresos.forEach(t => {
+            totalBruto += t.monto;
+            totalNeto += t.neto;
+            porMesNeto[t.mes] += t.neto;
+            if (t.linea === 'HPS') { totalHPS += t.monto; hpsPorMes[t.mes] += t.monto; }
+            else if (t.linea === 'IMPORT') { totalIMP += t.monto; impPorMes[t.mes] += t.monto; }
+            clientes[t.cliente] = (clientes[t.cliente] || 0) + t.monto;
+        });
+        const cumplimientoNeto = META_ANUAL > 0 ? (totalNeto / META_ANUAL * 100) : 0;
+        document.getElementById('kpiAnnual').innerHTML = `
+            <div class="kpi-card"><div class="kpi-label">Ingresos Brutos</div><div class="kpi-value">$${totalBruto.toLocaleString()}</div></div>
+            <div class="kpi-card"><div class="kpi-label">Ingresos Netos</div><div class="kpi-value">$${totalNeto.toLocaleString()}</div></div>
+            <div class="kpi-card"><div class="kpi-label">HPS (Bruto)</div><div class="kpi-value">$${totalHPS.toLocaleString()}</div></div>
+            <div class="kpi-card"><div class="kpi-label">IMPORT (Bruto)</div><div class="kpi-value">$${totalIMP.toLocaleString()}</div></div>
+            <div class="kpi-card ${cumplimientoNeto>=100?'success':'danger'}"><div class="kpi-label">Cumplimiento Meta (Neto)</div><div class="kpi-value">${cumplimientoNeto.toFixed(1)}%</div></div>
+        `;
+        const ctx1 = document.getElementById('chartEvolucion').getContext('2d');
+        if (window._chartEvolucion) window._chartEvolucion.destroy();
+        window._chartEvolucion = new Chart(ctx1, { type: 'line', data: { labels: MESES, datasets: [{ label: 'Ingresos Netos', data: porMesNeto, borderColor: '#1a3c5e', fill: false }, { label: 'Meta Mensual (Neto)', data: Array(12).fill(META_MENSUAL), borderColor: '#c62828', borderDash: [5], fill: false }] }, options: { responsive: true } });
+        const ctx2 = document.getElementById('chartHPSImportMensual').getContext('2d');
+        if (window._chartHPSImportMensual) window._chartHPSImportMensual.destroy();
+        window._chartHPSImportMensual = new Chart(ctx2, { type: 'bar', data: { labels: MESES, datasets: [{ label: 'HPS', data: hpsPorMes, backgroundColor: '#1a3c5e' }, { label: 'IMPORT', data: impPorMes, backgroundColor: '#e8873a' }] }, options: { responsive: true, scales: { x: { stacked: true }, y: { stacked: true } } } });
+        const sorted = Object.entries(clientes).sort((a,b)=>b[1]-a[1]).slice(0,15);
+        let html = '<table><th>Cliente</th><th>Total Bruto</th></tr>';
+        sorted.forEach(([c,v]) => html += `<tr><td>${c}</td><td>$${v.toLocaleString()}</td></tr>`);
+        html += '</table>';
+        document.getElementById('tablaClientes').innerHTML = html;
+    }
+
+    function renderizarDashboard() {
+        let totalBruto = 0, totalNeto = 0, totalHPS = 0, totalIMP = 0;
+        ingresos.forEach(t => { 
+            totalBruto += t.monto; 
+            totalNeto += t.neto;
+            if (t.linea === 'HPS') totalHPS += t.monto;
+            else if (t.linea === 'IMPORT') totalIMP += t.monto;
+        });
+        const cumplimiento = META_ANUAL > 0 ? (totalNeto / META_ANUAL * 100) : 0;
+        const mejorMes = Array(12).fill(0).map((_,i) => filtrarPorMes(i).reduce((s,t)=>s + t.neto,0));
+        const mejor = Math.max(...mejorMes);
+        const mejorMesIdx = mejorMes.indexOf(mejor);
+        document.getElementById('kpiDashboard').innerHTML = `
+            <div class="kpi-card"><div class="kpi-label">Total Bruto</div><div class="kpi-value">$${totalBruto.toLocaleString()}</div></div>
+            <div class="kpi-card"><div class="kpi-label">Total Neto</div><div class="kpi-value">$${totalNeto.toLocaleString()}</div></div>
+            <div class="kpi-card accent"><div class="kpi-label">HPS (Bruto)</div><div class="kpi-value">$${totalHPS.toLocaleString()}</div></div>
+            <div class="kpi-card info"><div class="kpi-label">IMPORT (Bruto)</div><div class="kpi-value">$${totalIMP.toLocaleString()}</div></div>
+            <div class="kpi-card ${cumplimiento>=100?'success':'danger'}"><div class="kpi-label">Cumplimiento Meta (Neto)</div><div class="kpi-value">${cumplimiento.toFixed(1)}%</div></div>
+            <div class="kpi-card"><div class="kpi-label">Mejor Mes (Neto)</div><div class="kpi-value">${MESES[mejorMesIdx]}</div><div class="kpi-sub">$${mejor.toLocaleString()}</div></div>
+        `;
+        const ctx1 = document.getElementById('chartMeta').getContext('2d');
+        if (window._chartMeta) window._chartMeta.destroy();
+        window._chartMeta = new Chart(ctx1, { type: 'bar', data: { labels: ['Real Neto','Meta Neto'], datasets: [{ data: [totalNeto, META_ANUAL], backgroundColor: ['#2e7d32','#1565c0'] }] }, options: { responsive: true, plugins: { legend: { display: false } } } });
+        const ctx2 = document.getElementById('chartDistribucion').getContext('2d');
+        if (window._chartDistribucion) window._chartDistribucion.destroy();
+        window._chartDistribucion = new Chart(ctx2, { type: 'pie', data: { labels: ['HPS','IMPORT','Sin clasificar'], datasets: [{ data: [totalHPS, totalIMP, totalBruto - totalHPS - totalIMP], backgroundColor: ['#1a3c5e','#e8873a','#cccccc'] }] }, options: { responsive: true } });
+    }
+
+    function mostrarToast(msg) { const e = document.querySelector('.toast'); if (e) e.remove(); const t = document.createElement('div'); t.className='toast'; t.textContent=msg; document.body.appendChild(t); setTimeout(()=>t.remove(),2500); }
+
+    window.iniciarSesion = async function() {
+        const u = document.getElementById('loginUsername').value.trim();
+        const p = document.getElementById('loginPassword').value;
+        document.getElementById('loginError').textContent = '';
+        const user = USUARIOS[u.toLowerCase()];
+        if (!user || user.password !== p) { document.getElementById('loginError').textContent = 'Credenciales incorrectas.'; return; }
+        usuarioActual = user;
+        document.getElementById('loginOverlay').style.display = 'none';
+        document.getElementById('sidebar').style.display = 'flex';
+        document.getElementById('mainContent').style.display = 'block';
+        document.getElementById('loggedUserLabel').textContent = user.nombre;
+        await inicializarDatos();
+        setActiveView('monthly', 0);
+    };
+    window.cerrarSesion = function() { usuarioActual = null; document.getElementById('loginOverlay').style.display = 'flex'; document.getElementById('sidebar').style.display = 'none'; document.getElementById('mainContent').style.display = 'none'; };
+    document.querySelectorAll('.sidebar-nav button[data-view]').forEach(btn => { btn.addEventListener('click', function() { const view = this.dataset.view; const month = this.dataset.month !== undefined ? parseInt(this.dataset.month) : null; setActiveView(view, month); }); });
+</script>
 </body>
 </html>
