@@ -1,6 +1,3 @@
-He mejorado el dashboard de ingresos añadiendo la funcionalidad de **edición completa de registros** (línea, producto/servicio, monto, fecha, cliente, presupuesto). Ahora, los usuarios administradores pueden hacer clic en el botón **"Editar"** junto a cada transacción, lo que abre un formulario emergente (inline) precargado con los datos actuales. Después de modificar los campos, se guardan los cambios y se recalcula automáticamente el valor neto (aplicando ITBIS del 18% a menos que el registro tenga la marca especial de “SIN ITBIS”). La tabla mantiene el número consecutivo correcto por mes y todos los gráficos se actualizan dinámicamente. A continuación se entrega el código completo y funcional.
-
-```html
 <!DOCTYPE html>
 <html lang="es">
 <head>
@@ -84,7 +81,11 @@ He mejorado el dashboard de ingresos añadiendo la funcionalidad de **edición c
         .sync-ok { background:#2e7d32; }
         .sync-pending { background:#f9a825; animation:pulse 1s infinite; }
         @keyframes pulse { 0%,100%{opacity:1;} 50%{opacity:0.4;} }
-        .edit-form-container { background:#f8f9fa; border-radius:var(--radius-sm); padding:16px; margin-bottom:16px; border-left:4px solid var(--info); }
+        /* Modal para edición */
+        .modal { display:none; position:fixed; top:0; left:0; width:100%; height:100%; background:rgba(0,0,0,0.5); justify-content:center; align-items:center; z-index:10000; }
+        .modal-content { background:#fff; border-radius:var(--radius); padding:24px; width:90%; max-width:700px; max-height:90vh; overflow-y:auto; }
+        .modal-header { display:flex; justify-content:space-between; margin-bottom:16px; }
+        .close-modal { cursor:pointer; font-size:1.5rem; font-weight:bold; }
     </style>
 </head>
 <body>
@@ -97,6 +98,28 @@ He mejorado el dashboard de ingresos añadiendo la funcionalidad de **edición c
         <button class="btn-login" onclick="iniciarSesion()">Ingresar</button>
         <div class="error-msg" id="loginError"></div>
         <div class="hint" style="font-size:0.7rem;opacity:0.8;margin-top:10px;">admin / admin123 | gerente / gerente123 | invitado / invitado</div>
+    </div>
+</div>
+
+<!-- Modal de edición -->
+<div id="editModal" class="modal">
+    <div class="modal-content">
+        <div class="modal-header">
+            <h3>Editar Ingreso</h3>
+            <span class="close-modal" onclick="cerrarModalEdicion()">&times;</span>
+        </div>
+        <div class="form-grid" id="editFormContainer">
+            <div class="form-group"><label>Fecha</label><input type="date" id="editFecha"></div>
+            <div class="form-group"><label>Cliente</label><input type="text" id="editCliente"></div>
+            <div class="form-group"><label>Presupuesto</label><input type="text" id="editPresupuesto"></div>
+            <div class="form-group"><label>Línea</label><select id="editLinea"><option value="HPS">HPS</option><option value="IMPORT">IMPORT</option><option value="">Sin clasificar</option></select></div>
+            <div class="form-group"><label>Producto/Servicio</label><input type="text" id="editProducto"></div>
+            <div class="form-group"><label>Monto Bruto (USD)</label><input type="number" id="editMonto" step="0.01"></div>
+        </div>
+        <div class="btn-row" style="margin-top:20px;display:flex;gap:10px;justify-content:flex-end;">
+            <button class="btn btn-primary" onclick="guardarEdicion()">Guardar Cambios</button>
+            <button class="btn btn-accent" onclick="cerrarModalEdicion()">Cancelar</button>
+        </div>
     </div>
 </div>
 
@@ -181,7 +204,7 @@ He mejorado el dashboard de ingresos añadiendo la funcionalidad de **edición c
     let ingresos = [];
     let currentMonth = 0;
     let nextId = Date.now();
-    let editingId = null;   // ID del registro que se está editando
+    let currentEditId = null;
 
     // ---------- PERSISTENCIA ----------
     async function cargarDatosRemotos() {
@@ -226,10 +249,7 @@ He mejorado el dashboard de ingresos añadiendo la funcionalidad de **edición c
 
     function actualizarIndicadorSync(ok) {
         const dot = document.getElementById('syncDot');
-        if (dot) {
-            dot.className = 'sync-indicator ' + (ok ? 'sync-ok' : 'sync-pending');
-            dot.title = ok ? 'Datos sincronizados' : 'Sin conexión - cambios locales';
-        }
+        if (dot) dot.className = 'sync-indicator ' + (ok ? 'sync-ok' : 'sync-pending');
     }
 
     // ---------- CARGA COMPLETA DE DATOS DESDE CSV (100% registros) ----------
@@ -263,31 +283,31 @@ He mejorado el dashboard de ingresos añadiendo la funcionalidad de **edición c
                 producto: (producto && producto.trim() !== '') ? producto.trim() : '',
                 monto: bruto,
                 neto: Math.round(neto * 100) / 100,
-                sinItbis: sinItbis   // guardamos esta bandera para futuras ediciones
+                sinItbis: sinItbis
             });
         }
 
-        // ===================== ENERO =====================
-        const ene = [ ["3-ene","CILCAMA- HOTEL CASA MARINA REEF","23005826","HPS","TARJETAS DE ACCESO",959.34],["6-ene","MODUS VIVENDIS - HOTEL EL BARCO","23006048","HPS","TARJETAS DE ACCESO",793.90],["6-ene","CONST. JOHANN REYES MARMOLEJOS","23005947","IMPORT","PUERTA RF MESKER",1562.50],["6-ene","CILCAMA- HOTEL CASA MARINA REEF","23005826","HPS","TARJETAS DE ACCESO",732.78],["7-ene","HOTEL MAJESTIC","23005689","HPS","TARJETAS DE ACCESO",566.39],["8-ene","HOTEL MAJESTIC","23005701","HPS","TARJETAS DE ACCESO",1681.50],["9-ene","HOTEL MAJESTIC","23005715","HPS","TARJETAS DE ACCESO",565.07],["12-ene","CORAL GULF ASSETS - HOTEL ST. REGIS CAP CANA","23005758","HPS","CAJAS FUERTES SD 49",6061.79],["13-ene","GRUPO ARHE SRL","23005633","IMPORT","PUERTA RF MESKER",2119.20],["13-ene","PLAYA GRANDE HOLDINGS","23004672","HPS","CERRADURAS VINGCARD",935.51],["16-ene","CORAL GULF ASSETS - HOTEL ST. REGIS CAP CANA","23005162","","",5011.24],["19-ene","DOMINICANOTEL- HOTEL SENATOR PUERTO PLATA","23006064","","",1452.54],["19-ene","VIVA INTERNATIONAL","23006059","","",171.86],["20-ene","CILCAMA- HOTEL CASA MARINA REEF","23005694","","",2447.57],["20-ene","CILCAMA- HOTEL CASA MARINA REEF","23006128","","",6802.32],["21-ene","GLOBAL SPACE TRADINGS SRL","23006139","","",1561.36],["22-ene","LIMBURG INVESTMENTS - HOTEL ALOFT Y MARRIOTT","23005552","","",2646.00],["22-ene","SOLAYA HOTELS - HOTEL EDEN ROC","23005996","","",2332.21],["23-ene","CIBAYO","23005184","","",4313.21],["23-ene","ATLAMBAR MANAGEMENT","23006150","","",13876.23],["27-ene","PUERTO DE LA CRUZ - HOTEL OCEAN BLUE","23005912","","",1299.06],["27-ene","MEGEVE INVESTMENTS - HOTEL KIMPTON LAS MERCEDES","23005714-5176","","",1102.35],["27-ene","DOMINICANOTEL- HOTEL SENATOR PUERTO PLATA","23006113","","",744.52],["28-ene","NC12- HOTEL SECRETS AND DREAMS MICHES","23006009","","",6651.76],["29-ene","NC12- HOTEL SECRETS AND DREAMS MICHES","23006009","","",3357.00],["29-ene","ALIBEY DEL CARIBE","23003664-3581-6040","","",15127.44],["29-ene","ALIBEY DEL CARIBE","23003813","","",204.47],["30-ene","CASA ARQUIDIOCESANA MARIA DE LA ALT.","23006144","","",2104.57],["30-ene","CASA ARQUIDIOCESANA MARIA DE LA ALT.","23006145","","",350.74],["30-ene","MODUS VIVENDIS - HOTEL EL BARCO","23006162","","",112.10],["30-ene","REINA SANTO- HOTEL BILLINI","23005882","","",131.74],["30-ene","HOSPITALITY OF DR - HOTEL FOUR POINTS SD","23005895","","",1417.50] ];
+        // ENERO
+        const ene = [["3-ene","CILCAMA- HOTEL CASA MARINA REEF","23005826","HPS","TARJETAS DE ACCESO",959.34],["6-ene","MODUS VIVENDIS - HOTEL EL BARCO","23006048","HPS","TARJETAS DE ACCESO",793.90],["6-ene","CONST. JOHANN REYES MARMOLEJOS","23005947","IMPORT","PUERTA RF MESKER",1562.50],["6-ene","CILCAMA- HOTEL CASA MARINA REEF","23005826","HPS","TARJETAS DE ACCESO",732.78],["7-ene","HOTEL MAJESTIC","23005689","HPS","TARJETAS DE ACCESO",566.39],["8-ene","HOTEL MAJESTIC","23005701","HPS","TARJETAS DE ACCESO",1681.50],["9-ene","HOTEL MAJESTIC","23005715","HPS","TARJETAS DE ACCESO",565.07],["12-ene","CORAL GULF ASSETS - HOTEL ST. REGIS CAP CANA","23005758","HPS","CAJAS FUERTES SD 49",6061.79],["13-ene","GRUPO ARHE SRL","23005633","IMPORT","PUERTA RF MESKER",2119.20],["13-ene","PLAYA GRANDE HOLDINGS","23004672","HPS","CERRADURAS VINGCARD",935.51],["16-ene","CORAL GULF ASSETS - HOTEL ST. REGIS CAP CANA","23005162","","",5011.24],["19-ene","DOMINICANOTEL- HOTEL SENATOR PUERTO PLATA","23006064","","",1452.54],["19-ene","VIVA INTERNATIONAL","23006059","","",171.86],["20-ene","CILCAMA- HOTEL CASA MARINA REEF","23005694","","",2447.57],["20-ene","CILCAMA- HOTEL CASA MARINA REEF","23006128","","",6802.32],["21-ene","GLOBAL SPACE TRADINGS SRL","23006139","","",1561.36],["22-ene","LIMBURG INVESTMENTS - HOTEL ALOFT Y MARRIOTT","23005552","","",2646.00],["22-ene","SOLAYA HOTELS - HOTEL EDEN ROC","23005996","","",2332.21],["23-ene","CIBAYO","23005184","","",4313.21],["23-ene","ATLAMBAR MANAGEMENT","23006150","","",13876.23],["27-ene","PUERTO DE LA CRUZ - HOTEL OCEAN BLUE","23005912","","",1299.06],["27-ene","MEGEVE INVESTMENTS - HOTEL KIMPTON LAS MERCEDES","23005714-5176","","",1102.35],["27-ene","DOMINICANOTEL- HOTEL SENATOR PUERTO PLATA","23006113","","",744.52],["28-ene","NC12- HOTEL SECRETS AND DREAMS MICHES","23006009","","",6651.76],["29-ene","NC12- HOTEL SECRETS AND DREAMS MICHES","23006009","","",3357.00],["29-ene","ALIBEY DEL CARIBE","23003664-3581-6040","","",15127.44],["29-ene","ALIBEY DEL CARIBE","23003813","","",204.47],["30-ene","CASA ARQUIDIOCESANA MARIA DE LA ALT.","23006144","","",2104.57],["30-ene","CASA ARQUIDIOCESANA MARIA DE LA ALT.","23006145","","",350.74],["30-ene","MODUS VIVENDIS - HOTEL EL BARCO","23006162","","",112.10],["30-ene","REINA SANTO- HOTEL BILLINI","23005882","","",131.74],["30-ene","HOSPITALITY OF DR - HOTEL FOUR POINTS SD","23005895","","",1417.50]];
         ene.forEach(r => agregar(r[0], 0, r[1], r[2], r[3], r[4], r[5]));
 
-        // ===================== FEBRERO =====================
-        const feb = [ ["2-feb","CONST. JOHANN REYES MARMOLEJOS","23005947","","",1230.67],["3-feb","CONSTRUCTORA DOVARO","23005759-6149","","",5721.47],["4-feb","DOMINICANOTEL- HOTEL SENATOR PP","23006063-6064","","",5523.05],["7-feb","JABAQUE INVERSIONES - HOTEL W PUNTA CANA","23006235-6214","","",7972.20],["10-feb","MDINA HOLDINGS - HOTEL OCEAN CLUB","23006252","","",802.39],["10-feb","SOLAYA HOTELS AND RESORTS - HOTEL EDEN ROC","23006014","","",8831.54],["10-feb","ASOCIACION DOMINICANA PROFAMILIA","23006209","","",259.60],["11-feb","GRUPO ARHE","23005633","","",908.23],["13-feb","NEXUS GESTION","23005765-5988-6073","","",673.46],["16-feb","DOMINICANOTEL- HOTEL SENATOR PP","23006272","","",100.30],["17-feb","CILCAMA- HOTEL CASA MARINA REEF","23006128","","",2915.28],["17-feb","JOY LUXURY VILLAGE","23006124","","",1875.84],["18-feb","HOTELERA BAVARO- HOTEL BARCELO BAVARO","23006133","","",356.39],["18-feb","CONSTRUCTORA AYBAR","23006236","","",482.58],["19-feb","NC12, SRL - HOTEL SECRETS AND DREAMS MICHES","23006103","","",762.71],["20-feb","JABAQUE INVERSIONES - HOTEL W PUNTA CANA","23006062","","",676.31],["23-feb","HOTEL LOPESAN COSTA BAVARO","23006037","","",3562.77],["24-feb","INVERSIONES ZAHENA- HOTEL HARD ROCK PUNTA CANA","23005927","","",20208.68],["24-feb","PB HOTEL - HOTEL ROYALTON PUNTA CANA","23006241","","",931.79],["24-feb","CONSTRUCTORA AYBAR","23006251","","",4249.10],["24-feb","KALAYA INVESTMENT","23006318","","",4153.83],["24-feb","ING360 SRL","23006308","","",708.15],["25-feb","JABAQUE INVERSIONES - HOTEL W PUNTA CANA","23005941-6167","","",7092.51],["25-feb","CEEI ENERGIAS RENOVABLES","23003876","","",2152.67],["25-feb","PB HOTEL - HOTEL ROYALTON PUNTA CANA","23006155","","",53.11],["25-feb","PUERTO DE LA CRUZ COMERCIAL- HOTEL OCEAN BLUE","23005943-6002","","",1470.16],["25-feb","CONSTRUCTORA ROPECA","23005878","","",7016.36],["26-feb","SOLAYA HOTELS AND RESORTS - HOTEL EDEN ROC","23005933","","",3447.08] ];
+        // FEBRERO
+        const feb = [["2-feb","CONST. JOHANN REYES MARMOLEJOS","23005947","","",1230.67],["3-feb","CONSTRUCTORA DOVARO","23005759-6149","","",5721.47],["4-feb","DOMINICANOTEL- HOTEL SENATOR PP","23006063-6064","","",5523.05],["7-feb","JABAQUE INVERSIONES - HOTEL W PUNTA CANA","23006235-6214","","",7972.20],["10-feb","MDINA HOLDINGS - HOTEL OCEAN CLUB","23006252","","",802.39],["10-feb","SOLAYA HOTELS AND RESORTS - HOTEL EDEN ROC","23006014","","",8831.54],["10-feb","ASOCIACION DOMINICANA PROFAMILIA","23006209","","",259.60],["11-feb","GRUPO ARHE","23005633","","",908.23],["13-feb","NEXUS GESTION","23005765-5988-6073","","",673.46],["16-feb","DOMINICANOTEL- HOTEL SENATOR PP","23006272","","",100.30],["17-feb","CILCAMA- HOTEL CASA MARINA REEF","23006128","","",2915.28],["17-feb","JOY LUXURY VILLAGE","23006124","","",1875.84],["18-feb","HOTELERA BAVARO- HOTEL BARCELO BAVARO","23006133","","",356.39],["18-feb","CONSTRUCTORA AYBAR","23006236","","",482.58],["19-feb","NC12, SRL - HOTEL SECRETS AND DREAMS MICHES","23006103","","",762.71],["20-feb","JABAQUE INVERSIONES - HOTEL W PUNTA CANA","23006062","","",676.31],["23-feb","HOTEL LOPESAN COSTA BAVARO","23006037","","",3562.77],["24-feb","INVERSIONES ZAHENA- HOTEL HARD ROCK PUNTA CANA","23005927","","",20208.68],["24-feb","PB HOTEL - HOTEL ROYALTON PUNTA CANA","23006241","","",931.79],["24-feb","CONSTRUCTORA AYBAR","23006251","","",4249.10],["24-feb","KALAYA INVESTMENT","23006318","","",4153.83],["24-feb","ING360 SRL","23006308","","",708.15],["25-feb","JABAQUE INVERSIONES - HOTEL W PUNTA CANA","23005941-6167","","",7092.51],["25-feb","CEEI ENERGIAS RENOVABLES","23003876","","",2152.67],["25-feb","PB HOTEL - HOTEL ROYALTON PUNTA CANA","23006155","","",53.11],["25-feb","PUERTO DE LA CRUZ COMERCIAL- HOTEL OCEAN BLUE","23005943-6002","","",1470.16],["25-feb","CONSTRUCTORA ROPECA","23005878","","",7016.36],["26-feb","SOLAYA HOTELS AND RESORTS - HOTEL EDEN ROC","23005933","","",3447.08]];
         feb.forEach(r => agregar(r[0], 1, r[1], r[2], r[3], r[4], r[5]));
 
-        // ===================== MARZO =====================
-        const mar = [ ["1-mar","MAJESTIC DESARROLLOS DEL CARIBE","23006032","","",4252.07],["3-mar","HOTEL COSTA LARIMAR","23006340","","",920.39],["3-mar","NEXUS GESTION","23006258","","",293.82],["4-mar","HABITA GROUP GDC SRL","23006296","","",1300.00],["4-mar","DOMINICANOTEL","23005939","","",504.37],["5-mar","RL HABITT","23006298","","",219.48],["5-mar","PUNTA CANA HOLDINGS","23006044-6215","","",673.33],["6-mar","HOTEL SATAMA","23006407","","",878.81],["6-mar","JABAQUE INVERSIONES SAS","23005473-6061","","",761.10],["6-mar","UVEALTO 2015, S.A.","23006217","","",4953.11],["9-mar","LIMBURG INVESTMENTS","23006156","","",559.32],["10-mar","BLUECAP HOLDINGS DR SAS","23005799","","",425.34],["10-mar","INVERSIONES ZAHENA","23005376","","",273.95],["12-mar","NC12 SRL","23006103-6108","","",6289.40],["13-mar","INVERSIONES OCRE ROJO","23005950","","",1185.43],["13-mar","INVERSIONES ABEY","23006431","","",24844.14],["13-mar","JABAQUE INVERSIONES SAS","23006168-6313","","",2171.20],["16-mar","CAMP DAVID RANCH","23006293","","",174.64],["17-mar","HOTELERA BAVARO","23005914","","",356.91],["18-mar","CASA MARINA SAMANA","23005872","","",3470.38],["19-mar","UVEALTO 2015, S.A.","23006276","","",1942.50],["20-mar","VARALLO COMERCIAL","23006325","","",1270.50],["20-mar","ROPECA","23006433","","",538.46],["21-mar","ZEMI MICHES","23006007","","",1525.28],["23-mar","LIMBURG INVESTMENTS","23005552","","",1814.40],["23-mar","JOY LUXURY VILLAGE","23006017","","",2000.00],["24-mar","PUERTO DE LA CRUZ COMERCIAL","23006074-6317","","",1574.15],["24-mar","CORAL GULF ASSETS","23006410","","",89.09],["25-mar","MEGEVE INVESTMENT","23006053","","",5495.94],["25-mar","PLAYA GRANDE GOLF RESORTS","23006409","","",247.38],["25-mar","UVEALTO 2015, S.A.","23005885","","",1391.50],["25-mar","CORAL GULF ASSETS","23006213","","",1924.52],["26-mar","CASA MARINA SAMANA","23005872","","",3470.38],["26-mar","UVEALTO 2015, S.A.","23005999-6217","","",1666.82],["27-mar","ALISH GROUP","23003806","","",4464.91],["27-mar","CILCAMA","23006321","","",44623.20],["27-mar","HABITA GROUP GDC SRL","23006296","","",555.00],["27-mar","INVERSIONES OCRE ROJO","23006478","","",1159.19],["27-mar","JABAQUE INVERSIONES SAS","23005245-6437","","",4124.40],["28-mar","CILCAMA","23006475","","",977.04],["30-mar","VARALLO COMERCIAL","23006477","","",568.02],["31-mar","RESIDENCIAL REGATTA LIVING I","23006436","","",318.60],["31-mar","CORAL GULF ASSETS/ MORRIS MURDOCK","23006469","","",2205.48],["31-mar","CEEI ENERGIAS RENOVABLES","23003876","","",2152.67],["31-mar","DOMINICAN DEVELOPMENTS DDP","23006462","","",221.84] ];
+        // MARZO
+        const mar = [["1-mar","MAJESTIC DESARROLLOS DEL CARIBE","23006032","","",4252.07],["3-mar","HOTEL COSTA LARIMAR","23006340","","",920.39],["3-mar","NEXUS GESTION","23006258","","",293.82],["4-mar","HABITA GROUP GDC SRL","23006296","","",1300.00],["4-mar","DOMINICANOTEL","23005939","","",504.37],["5-mar","RL HABITT","23006298","","",219.48],["5-mar","PUNTA CANA HOLDINGS","23006044-6215","","",673.33],["6-mar","HOTEL SATAMA","23006407","","",878.81],["6-mar","JABAQUE INVERSIONES SAS","23005473-6061","","",761.10],["6-mar","UVEALTO 2015, S.A.","23006217","","",4953.11],["9-mar","LIMBURG INVESTMENTS","23006156","","",559.32],["10-mar","BLUECAP HOLDINGS DR SAS","23005799","","",425.34],["10-mar","INVERSIONES ZAHENA","23005376","","",273.95],["12-mar","NC12 SRL","23006103-6108","","",6289.40],["13-mar","INVERSIONES OCRE ROJO","23005950","","",1185.43],["13-mar","INVERSIONES ABEY","23006431","","",24844.14],["13-mar","JABAQUE INVERSIONES SAS","23006168-6313","","",2171.20],["16-mar","CAMP DAVID RANCH","23006293","","",174.64],["17-mar","HOTELERA BAVARO","23005914","","",356.91],["18-mar","CASA MARINA SAMANA","23005872","","",3470.38],["19-mar","UVEALTO 2015, S.A.","23006276","","",1942.50],["20-mar","VARALLO COMERCIAL","23006325","","",1270.50],["20-mar","ROPECA","23006433","","",538.46],["21-mar","ZEMI MICHES","23006007","","",1525.28],["23-mar","LIMBURG INVESTMENTS","23005552","","",1814.40],["23-mar","JOY LUXURY VILLAGE","23006017","","",2000.00],["24-mar","PUERTO DE LA CRUZ COMERCIAL","23006074-6317","","",1574.15],["24-mar","CORAL GULF ASSETS","23006410","","",89.09],["25-mar","MEGEVE INVESTMENT","23006053","","",5495.94],["25-mar","PLAYA GRANDE GOLF RESORTS","23006409","","",247.38],["25-mar","UVEALTO 2015, S.A.","23005885","","",1391.50],["25-mar","CORAL GULF ASSETS","23006213","","",1924.52],["26-mar","CASA MARINA SAMANA","23005872","","",3470.38],["26-mar","UVEALTO 2015, S.A.","23005999-6217","","",1666.82],["27-mar","ALISH GROUP","23003806","","",4464.91],["27-mar","CILCAMA","23006321","","",44623.20],["27-mar","HABITA GROUP GDC SRL","23006296","","",555.00],["27-mar","INVERSIONES OCRE ROJO","23006478","","",1159.19],["27-mar","JABAQUE INVERSIONES SAS","23005245-6437","","",4124.40],["28-mar","CILCAMA","23006475","","",977.04],["30-mar","VARALLO COMERCIAL","23006477","","",568.02],["31-mar","RESIDENCIAL REGATTA LIVING I","23006436","","",318.60],["31-mar","CORAL GULF ASSETS/ MORRIS MURDOCK","23006469","","",2205.48],["31-mar","CEEI ENERGIAS RENOVABLES","23003876","","",2152.67],["31-mar","DOMINICAN DEVELOPMENTS DDP","23006462","","",221.84]];
         mar.forEach(r => agregar(r[0], 2, r[1], r[2], r[3], r[4], r[5]));
 
-        // ===================== ABRIL =====================
-        const abr = [ ["8-abr","REINA SANTO - HOTEL BILLINI","23006172","","",302.08],["9-abr","ZEMI MICHES","23005967-6072-6212","","",2251.27],["10-abr","INVERSIONES ZAHENA- HOTEL HARD ROCK","23006336","","",139.69],["10-abr","GSM INVESTMENTS - HOTEL DREAMS MACAO","23006335-5363-6450","","",11937.99],["13-abr","HOTEL SECRETS/DREAMS LA ROMANA","23005642","","",291351.27],["14-abr","INVERSIONES ARRECIFE","23006366","","",163.00],["15-abr","INVERSIONES OCRE ROJO","23005999","","",952.60],["15-abr","HOTELERIA OASIS CARIBBEAN","23006569","","",70.62],["15-abr","VARALLO COMERCIAL- SECRETS ROYAL","23005998","","",1247.49],["16-abr","IDEARE GROUP","23006561","","",1023.00],["17-abr","DOMINICANOTEL - HOTEL SENATOR PP","23006346-6362","","",1365.86],["20-abr","SANS SOUCI PORTS","23006417","","",5675.59],["20-abr","NEXUS GESTION","23006357-6408-6524-6250","","",1459.76],["21-abr","EL PALMAR BUSINESS- HOTEL INTERCONTINENTAL","23006463","","",200.60],["21-abr","CILCAMA- HOTEL CASA MARINA REEF","23006499","","",200.60],["21-abr","ALIBEY DEL CARIBE- HOTEL HYATT CENTRIC","23006351","","",157.23],["21-abr","GREEN STAR PARTNERS, S.A.S.- STARBUCKS","23006582","","",1217.11],["22-abr","INVERSIONES GINARK - HOTEL SANCTUARY CAP CANA","23006468","","",515.60],["22-abr","COBEGA- HOTEL EMOTIONS JUAN DOLIO","23006476","","",820.81],["23-abr","NC12, SRL- SECRETS AND DREAMS MICHES","23006121-6122","","",12602.20],["24-abr","INVERSIONES OCRE ROJO","23006478","","",1016.23],["27-abr","VARALLO COMERCIAL- SECRETS ROYAL","23006444","","",23745.60],["27-abr","VARALLO COMERCIAL- SECRETS ROYAL","23006477","","",343.66],["27-abr","UVEALTO 2015- SECRETS TIDES","23006348","","",775.26],["27-abr","DOMINICANOTEL - HOTEL SENATOR PP","23005906","","",3413.27],["27-abr","INVERSIONES ZAHENA- HOTEL HARD ROCK","23005376","","",137.19],["28-abr","MXC DOMINICANA - PROYECTO YANUNA","23006465","","",1256.46],["28-abr","CF HOTELS LLC- HOTEL COURTYARD MAXIMO GOMEZ","23006419-23006492","","",2764.66],["29-abr","MXC DOMINICANA - PROYECTO YANUNA","23006466","","",965.50],["29-abr","PACKAGING SOLUTIONS PACKSOL SRL","23006593","","",510.16] ];
+        // ABRIL (con SIN ITBIS)
+        const abr = [["8-abr","REINA SANTO - HOTEL BILLINI","23006172","","",302.08],["9-abr","ZEMI MICHES","23005967-6072-6212","","",2251.27],["10-abr","INVERSIONES ZAHENA- HOTEL HARD ROCK","23006336","","",139.69],["10-abr","GSM INVESTMENTS - HOTEL DREAMS MACAO","23006335-5363-6450","","",11937.99],["13-abr","HOTEL SECRETS/DREAMS LA ROMANA","23005642","","",291351.27],["14-abr","INVERSIONES ARRECIFE","23006366","","",163.00],["15-abr","INVERSIONES OCRE ROJO","23005999","","",952.60],["15-abr","HOTELERIA OASIS CARIBBEAN","23006569","","",70.62],["15-abr","VARALLO COMERCIAL- SECRETS ROYAL","23005998","","",1247.49],["16-abr","IDEARE GROUP","23006561","","",1023.00],["17-abr","DOMINICANOTEL - HOTEL SENATOR PP","23006346-6362","","",1365.86],["20-abr","SANS SOUCI PORTS","23006417","","",5675.59],["20-abr","NEXUS GESTION","23006357-6408-6524-6250","","",1459.76],["21-abr","EL PALMAR BUSINESS- HOTEL INTERCONTINENTAL","23006463","","",200.60],["21-abr","CILCAMA- HOTEL CASA MARINA REEF","23006499","","",200.60],["21-abr","ALIBEY DEL CARIBE- HOTEL HYATT CENTRIC","23006351","","",157.23],["21-abr","GREEN STAR PARTNERS, S.A.S.- STARBUCKS","23006582","","",1217.11],["22-abr","INVERSIONES GINARK - HOTEL SANCTUARY CAP CANA","23006468","","",515.60],["22-abr","COBEGA- HOTEL EMOTIONS JUAN DOLIO","23006476","","",820.81],["23-abr","NC12, SRL- SECRETS AND DREAMS MICHES","23006121-6122","","",12602.20],["24-abr","INVERSIONES OCRE ROJO","23006478","","",1016.23],["27-abr","VARALLO COMERCIAL- SECRETS ROYAL","23006444","","",23745.60],["27-abr","VARALLO COMERCIAL- SECRETS ROYAL","23006477","","",343.66],["27-abr","UVEALTO 2015- SECRETS TIDES","23006348","","",775.26],["27-abr","DOMINICANOTEL - HOTEL SENATOR PP","23005906","","",3413.27],["27-abr","INVERSIONES ZAHENA- HOTEL HARD ROCK","23005376","","",137.19],["28-abr","MXC DOMINICANA - PROYECTO YANUNA","23006465","","",1256.46],["28-abr","CF HOTELS LLC- HOTEL COURTYARD MAXIMO GOMEZ","23006419-23006492","","",2764.66],["29-abr","MXC DOMINICANA - PROYECTO YANUNA","23006466","","",965.50],["29-abr","PACKAGING SOLUTIONS PACKSOL SRL","23006593","","",510.16]];
         abr.forEach(r => {
             const sinItbis = (r[1].includes("MXC DOMINICANA") && (r[5] === 1256.46 || r[5] === 965.50));
             agregar(r[0], 3, r[1], r[2], r[3], r[4], r[5], sinItbis);
         });
 
-        // ===================== MAYO =====================
-        const may = [ ["2026-05-01","UVEALTO 2015- HOTEL SECRETS TIDES","23006421","HPS","PRODUCTOS HPS",11866.44],["2026-05-04","DOMINICANOTEL - HOTEL SENATOR","23005906","","",1137.75],["2026-05-04","DOMINICANOTEL - HOTEL SENATOR","23006587","","",1489.04],["2026-05-05","CORAL GULF ASSETS- HOTEL ST. REGIS","23006572","HPS","PROYECTO ST. REGIS CAP CANA",1137.54],["2026-05-06","INVERSIONES OCRE ROJO","23006564","HPS","PRODUCTOS HPS",43081.62],["2026-05-08","JABAQUE INVERSIONES SAS - HOTEL W PUNTA CANA","","","",5964.02],["2026-05-08","BLUE DOWNTOWN HOTEL PC SRL","23006651","","",14547.00],["2026-05-09","DKLIC PLUS INVESTMENT SRL","23006677","","",24.30] ];
+        // MAYO
+        const may = [["2026-05-01","UVEALTO 2015- HOTEL SECRETS TIDES","23006421","HPS","PRODUCTOS HPS",11866.44],["2026-05-04","DOMINICANOTEL - HOTEL SENATOR","23005906","","",1137.75],["2026-05-04","DOMINICANOTEL - HOTEL SENATOR","23006587","","",1489.04],["2026-05-05","CORAL GULF ASSETS- HOTEL ST. REGIS","23006572","HPS","PROYECTO ST. REGIS CAP CANA",1137.54],["2026-05-06","INVERSIONES OCRE ROJO","23006564","HPS","PRODUCTOS HPS",43081.62],["2026-05-08","JABAQUE INVERSIONES SAS - HOTEL W PUNTA CANA","","","",5964.02],["2026-05-08","BLUE DOWNTOWN HOTEL PC SRL","23006651","","",14547.00],["2026-05-09","DKLIC PLUS INVESTMENT SRL","23006677","","",24.30]];
         may.forEach(r => {
             const bruto = r[5];
             const neto = bruto / 1.18;
@@ -324,6 +344,12 @@ He mejorado el dashboard de ingresos añadiendo la funcionalidad de **edición c
     }
 
     let currentView = 'monthly';
+    let charts = {};
+
+    function destruirGrafico(id) {
+        if (charts[id]) { charts[id].destroy(); delete charts[id]; }
+    }
+
     function setActiveView(view, month = null) {
         document.querySelectorAll('.view-panel').forEach(p => p.classList.remove('active'));
         document.querySelectorAll('.sidebar-nav button').forEach(b => b.classList.remove('active'));
@@ -342,70 +368,6 @@ He mejorado el dashboard de ingresos añadiendo la funcionalidad de **edición c
             renderizarDashboard();
         }
         currentView = view;
-        editingId = null;
-    }
-
-    // Mostrar formulario de edición inline
-    function mostrarFormularioEdicion(id) {
-        const registro = ingresos.find(r => r.id === id);
-        if (!registro) return;
-        editingId = id;
-        // Llenar el formulario de creación con los datos existentes (reutilizamos los mismos campos)
-        document.getElementById('ingFecha').value = registro.fecha;
-        document.getElementById('ingCliente').value = registro.cliente;
-        document.getElementById('ingPresupuesto').value = registro.presupuesto;
-        document.getElementById('ingLinea').value = registro.linea;
-        document.getElementById('ingProducto').value = registro.producto || '';
-        document.getElementById('ingMonto').value = registro.monto;
-        // Cambiar el botón Guardar para que ejecute actualización
-        const guardarBtn = document.querySelector('#formIngreso .btn-primary');
-        guardarBtn.textContent = 'Actualizar';
-        guardarBtn.onclick = () => actualizarIngreso(id);
-        // Opcional: mostrar un mensaje
-        document.getElementById('formIngreso').scrollIntoView({ behavior: 'smooth' });
-        mostrarToast('✏️ Editando registro. Modifique los campos y presione Actualizar.');
-    }
-
-    async function actualizarIngreso(id) {
-        if (!usuarioActual || usuarioActual.rol !== 'admin') return;
-        const fecha = document.getElementById('ingFecha').value;
-        if (!fecha) { mostrarToast('❌ La fecha es obligatoria'); return; }
-        const mes = new Date(fecha + 'T00:00:00').getMonth();
-        const bruto = parseFloat(document.getElementById('ingMonto').value) || 0;
-        const registro = ingresos.find(r => r.id === id);
-        if (!registro) return;
-        // Si el registro tenía la marca sinItbis, mantenemos el neto = bruto; sino aplicamos ITBIS
-        const sinItbis = registro.sinItbis === true;
-        const neto = sinItbis ? bruto : bruto / 1.18;
-        registro.fecha = fecha;
-        registro.mes = mes;
-        registro.cliente = document.getElementById('ingCliente').value;
-        registro.presupuesto = document.getElementById('ingPresupuesto').value;
-        registro.linea = document.getElementById('ingLinea').value;
-        registro.producto = document.getElementById('ingProducto').value;
-        registro.monto = bruto;
-        registro.neto = Math.round(neto * 100) / 100;
-        await guardarDatosRemotos();
-        renderizarMes(currentMonth);
-        limpiarFormIngreso();
-        editingId = null;
-        const guardarBtn = document.querySelector('#formIngreso .btn-primary');
-        guardarBtn.textContent = 'Guardar';
-        guardarBtn.onclick = guardarIngreso;
-        mostrarToast('✅ Registro actualizado correctamente');
-    }
-
-    function limpiarFormIngreso() {
-        document.getElementById('ingFecha').value = '';
-        document.getElementById('ingCliente').value = '';
-        document.getElementById('ingPresupuesto').value = '';
-        document.getElementById('ingLinea').value = 'HPS';
-        document.getElementById('ingProducto').value = '';
-        document.getElementById('ingMonto').value = '';
-        editingId = null;
-        const guardarBtn = document.querySelector('#formIngreso .btn-primary');
-        guardarBtn.textContent = 'Guardar';
-        guardarBtn.onclick = guardarIngreso;
     }
 
     function renderizarMes(mes) {
@@ -421,16 +383,16 @@ He mejorado el dashboard de ingresos añadiendo la funcionalidad de **edición c
             <div class="kpi-card"><div class="kpi-label">Ingresos IMPORT (Bruto)</div><div class="kpi-value">$${kpi.imp.toLocaleString()}</div></div>
             <div class="kpi-card ${kpi.cumplimiento>=100?'success':'danger'}"><div class="kpi-label">Cumplimiento Meta (Neto)</div><div class="kpi-value">${kpi.cumplimiento.toFixed(1)}%</div></div>
         `;
+        destruirGrafico('chartHPSImport');
         const ctx1 = document.getElementById('chartHPSImport').getContext('2d');
-        if (window._chartHPSImport) window._chartHPSImport.destroy();
-        window._chartHPSImport = new Chart(ctx1, { type: 'doughnut', data: { labels: ['HPS','IMPORT','Sin clasificar'], datasets: [{ data: [kpi.hps, kpi.imp, kpi.sinClasif], backgroundColor: ['#1a3c5e','#e8873a','#cccccc'] }] }, options: { responsive: true } });
+        charts['chartHPSImport'] = new Chart(ctx1, { type: 'doughnut', data: { labels: ['HPS','IMPORT','Sin clasificar'], datasets: [{ data: [kpi.hps, kpi.imp, kpi.sinClasif], backgroundColor: ['#1a3c5e','#e8873a','#cccccc'] }] }, options: { responsive: true } });
         const tx = filtrarPorMes(mes);
         const dias = {};
         tx.forEach(t => { const d = t.fecha.substring(8,10); dias[d] = (dias[d]||0) + t.monto; });
         const sortedDias = Object.entries(dias).sort((a,b)=>parseInt(a[0])-parseInt(b[0]));
+        destruirGrafico('chartDiario');
         const ctx2 = document.getElementById('chartDiario').getContext('2d');
-        if (window._chartDiario) window._chartDiario.destroy();
-        window._chartDiario = new Chart(ctx2, { type: 'bar', data: { labels: sortedDias.map(d=>`Día ${d[0]}`), datasets: [{ data: sortedDias.map(d=>d[1]), backgroundColor: '#2c5f8a' }] }, options: { responsive: true, plugins: { legend: { display: false } } } });
+        charts['chartDiario'] = new Chart(ctx2, { type: 'bar', data: { labels: sortedDias.map(d=>`Día ${d[0]}`), datasets: [{ data: sortedDias.map(d=>d[1]), backgroundColor: '#2c5f8a' }] }, options: { responsive: true, plugins: { legend: { display: false } } } });
         let html = `<tr><th>N°</th><th>Fecha</th><th>Cliente</th><th>Presupuesto</th><th>Línea</th><th>Producto/S</th><th>Monto Bruto</th><th>Monto Neto</th>${esAdmin?'<th>Acciones</th>':''}</tr>`;
         tx.forEach((t, idx) => {
             html += `<tr>
@@ -442,15 +404,62 @@ He mejorado el dashboard de ingresos añadiendo la funcionalidad de **edición c
                 <td>${t.producto||'-'}</td>
                 <td>$${t.monto.toFixed(2)}</td>
                 <td>$${t.neto.toFixed(2)}</td>
-                ${esAdmin?`<td><button class="btn btn-sm btn-edit" onclick="mostrarFormularioEdicion(${t.id})">Editar</button> <button class="btn btn-sm" style="background:#c62828;color:#fff;" onclick="eliminarIngreso(${t.id})">X</button></td>`:''}
+                ${esAdmin?`<td><button class="btn btn-sm btn-edit" onclick="abrirModalEdicion(${t.id})">Editar</button> <button class="btn btn-sm" style="background:#c62828;color:#fff;" onclick="eliminarIngreso(${t.id})">X</button></td>`:''}
             </tr>`;
         });
         html += '</table>';
         document.getElementById('tablaIngresos').innerHTML = html;
     }
 
-    window.mostrarFormularioEdicion = mostrarFormularioEdicion;
+    // ---------- EDICIÓN CON MODAL ----------
+    function abrirModalEdicion(id) {
+        const reg = ingresos.find(r => r.id === id);
+        if (!reg) return;
+        currentEditId = id;
+        document.getElementById('editFecha').value = reg.fecha;
+        document.getElementById('editCliente').value = reg.cliente;
+        document.getElementById('editPresupuesto').value = reg.presupuesto;
+        document.getElementById('editLinea').value = reg.linea;
+        document.getElementById('editProducto').value = reg.producto || '';
+        document.getElementById('editMonto').value = reg.monto;
+        document.getElementById('editModal').style.display = 'flex';
+    }
 
+    function cerrarModalEdicion() {
+        document.getElementById('editModal').style.display = 'none';
+        currentEditId = null;
+    }
+
+    async function guardarEdicion() {
+        if (!usuarioActual || usuarioActual.rol !== 'admin') return;
+        const id = currentEditId;
+        const reg = ingresos.find(r => r.id === id);
+        if (!reg) return;
+        const fecha = document.getElementById('editFecha').value;
+        if (!fecha) { mostrarToast('❌ La fecha es obligatoria'); return; }
+        const mes = new Date(fecha + 'T00:00:00').getMonth();
+        const bruto = parseFloat(document.getElementById('editMonto').value) || 0;
+        const sinItbis = reg.sinItbis === true;
+        const neto = sinItbis ? bruto : bruto / 1.18;
+        reg.fecha = fecha;
+        reg.mes = mes;
+        reg.cliente = document.getElementById('editCliente').value;
+        reg.presupuesto = document.getElementById('editPresupuesto').value;
+        reg.linea = document.getElementById('editLinea').value;
+        reg.producto = document.getElementById('editProducto').value;
+        reg.monto = bruto;
+        reg.neto = Math.round(neto * 100) / 100;
+        await guardarDatosRemotos();
+        renderizarMes(currentMonth);
+        cerrarModalEdicion();
+        mostrarToast('✅ Registro actualizado');
+    }
+
+    window.abrirModalEdicion = abrirModalEdicion;
+    window.cerrarModalEdicion = cerrarModalEdicion;
+    window.guardarEdicion = guardarEdicion;
+
+    // ---------- ELIMINAR ----------
     window.eliminarIngreso = async function(id) {
         if (!usuarioActual || usuarioActual.rol !== 'admin') return;
         const index = ingresos.findIndex(t => t.id === id);
@@ -461,6 +470,7 @@ He mejorado el dashboard de ingresos añadiendo la funcionalidad de **edición c
         mostrarToast('🗑️ Ingreso eliminado');
     };
 
+    // ---------- AGREGAR ----------
     window.guardarIngreso = async function() {
         if (!usuarioActual || usuarioActual.rol !== 'admin') return;
         const fecha = document.getElementById('ingFecha').value;
@@ -485,6 +495,16 @@ He mejorado el dashboard de ingresos añadiendo la funcionalidad de **edición c
         mostrarToast('✅ Ingreso guardado');
     };
 
+    window.limpiarFormIngreso = function() {
+        document.getElementById('ingFecha').value = '';
+        document.getElementById('ingCliente').value = '';
+        document.getElementById('ingPresupuesto').value = '';
+        document.getElementById('ingLinea').value = 'HPS';
+        document.getElementById('ingProducto').value = '';
+        document.getElementById('ingMonto').value = '';
+    };
+
+    // ---------- VISTAS ANUAL Y DASHBOARD ----------
     function renderizarAnual() {
         let totalBruto = 0, totalNeto = 0, totalHPS = 0, totalIMP = 0;
         const clientes = {};
@@ -507,14 +527,14 @@ He mejorado el dashboard de ingresos añadiendo la funcionalidad de **edición c
             <div class="kpi-card"><div class="kpi-label">IMPORT (Bruto)</div><div class="kpi-value">$${totalIMP.toLocaleString()}</div></div>
             <div class="kpi-card ${cumplimientoNeto>=100?'success':'danger'}"><div class="kpi-label">Cumplimiento Meta (Neto)</div><div class="kpi-value">${cumplimientoNeto.toFixed(1)}%</div></div>
         `;
+        destruirGrafico('chartEvolucion');
         const ctx1 = document.getElementById('chartEvolucion').getContext('2d');
-        if (window._chartEvolucion) window._chartEvolucion.destroy();
-        window._chartEvolucion = new Chart(ctx1, { type: 'line', data: { labels: MESES, datasets: [{ label: 'Ingresos Netos', data: porMesNeto, borderColor: '#1a3c5e', fill: false }, { label: 'Meta Mensual (Neto)', data: Array(12).fill(META_MENSUAL), borderColor: '#c62828', borderDash: [5], fill: false }] }, options: { responsive: true } });
+        charts['chartEvolucion'] = new Chart(ctx1, { type: 'line', data: { labels: MESES, datasets: [{ label: 'Ingresos Netos', data: porMesNeto, borderColor: '#1a3c5e', fill: false }, { label: 'Meta Mensual (Neto)', data: Array(12).fill(META_MENSUAL), borderColor: '#c62828', borderDash: [5], fill: false }] }, options: { responsive: true } });
+        destruirGrafico('chartHPSImportMensual');
         const ctx2 = document.getElementById('chartHPSImportMensual').getContext('2d');
-        if (window._chartHPSImportMensual) window._chartHPSImportMensual.destroy();
-        window._chartHPSImportMensual = new Chart(ctx2, { type: 'bar', data: { labels: MESES, datasets: [{ label: 'HPS', data: hpsPorMes, backgroundColor: '#1a3c5e' }, { label: 'IMPORT', data: impPorMes, backgroundColor: '#e8873a' }] }, options: { responsive: true, scales: { x: { stacked: true }, y: { stacked: true } } } });
+        charts['chartHPSImportMensual'] = new Chart(ctx2, { type: 'bar', data: { labels: MESES, datasets: [{ label: 'HPS', data: hpsPorMes, backgroundColor: '#1a3c5e' }, { label: 'IMPORT', data: impPorMes, backgroundColor: '#e8873a' }] }, options: { responsive: true, scales: { x: { stacked: true }, y: { stacked: true } } } });
         const sorted = Object.entries(clientes).sort((a,b)=>b[1]-a[1]).slice(0,15);
-        let html = '<table><th>Cliente</th><th>Total Bruto</th><tr>';
+        let html = '<table><th>Cliente</th><th>Total Bruto</th></tr>';
         sorted.forEach(([c,v]) => html += `<tr><td>${c}</td><td>$${v.toLocaleString()}</td></tr>`);
         html += '</table>';
         document.getElementById('tablaClientes').innerHTML = html;
@@ -540,12 +560,12 @@ He mejorado el dashboard de ingresos añadiendo la funcionalidad de **edición c
             <div class="kpi-card ${cumplimiento>=100?'success':'danger'}"><div class="kpi-label">Cumplimiento Meta (Neto)</div><div class="kpi-value">${cumplimiento.toFixed(1)}%</div></div>
             <div class="kpi-card"><div class="kpi-label">Mejor Mes (Neto)</div><div class="kpi-value">${MESES[mejorMesIdx]}</div><div class="kpi-sub">$${mejor.toLocaleString()}</div></div>
         `;
+        destruirGrafico('chartMeta');
         const ctx1 = document.getElementById('chartMeta').getContext('2d');
-        if (window._chartMeta) window._chartMeta.destroy();
-        window._chartMeta = new Chart(ctx1, { type: 'bar', data: { labels: ['Real Neto','Meta Neto'], datasets: [{ data: [totalNeto, META_ANUAL], backgroundColor: ['#2e7d32','#1565c0'] }] }, options: { responsive: true, plugins: { legend: { display: false } } } });
+        charts['chartMeta'] = new Chart(ctx1, { type: 'bar', data: { labels: ['Real Neto','Meta Neto'], datasets: [{ data: [totalNeto, META_ANUAL], backgroundColor: ['#2e7d32','#1565c0'] }] }, options: { responsive: true, plugins: { legend: { display: false } } } });
+        destruirGrafico('chartDistribucion');
         const ctx2 = document.getElementById('chartDistribucion').getContext('2d');
-        if (window._chartDistribucion) window._chartDistribucion.destroy();
-        window._chartDistribucion = new Chart(ctx2, { type: 'pie', data: { labels: ['HPS','IMPORT','Sin clasificar'], datasets: [{ data: [totalHPS, totalIMP, totalBruto - totalHPS - totalIMP], backgroundColor: ['#1a3c5e','#e8873a','#cccccc'] }] }, options: { responsive: true } });
+        charts['chartDistribucion'] = new Chart(ctx2, { type: 'pie', data: { labels: ['HPS','IMPORT','Sin clasificar'], datasets: [{ data: [totalHPS, totalIMP, totalBruto - totalHPS - totalIMP], backgroundColor: ['#1a3c5e','#e8873a','#cccccc'] }] }, options: { responsive: true } });
     }
 
     function mostrarToast(msg) { const e = document.querySelector('.toast'); if (e) e.remove(); const t = document.createElement('div'); t.className='toast'; t.textContent=msg; document.body.appendChild(t); setTimeout(()=>t.remove(),2500); }
@@ -566,7 +586,6 @@ He mejorado el dashboard de ingresos añadiendo la funcionalidad de **edición c
     };
     window.cerrarSesion = function() { usuarioActual = null; document.getElementById('loginOverlay').style.display = 'flex'; document.getElementById('sidebar').style.display = 'none'; document.getElementById('mainContent').style.display = 'none'; };
     document.querySelectorAll('.sidebar-nav button[data-view]').forEach(btn => { btn.addEventListener('click', function() { const view = this.dataset.view; const month = this.dataset.month !== undefined ? parseInt(this.dataset.month) : null; setActiveView(view, month); }); });
-    window.limpiarFormIngreso = limpiarFormIngreso;
 </script>
 </body>
 </html>
